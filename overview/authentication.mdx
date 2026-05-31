@@ -1,0 +1,54 @@
+---
+title: "Authentication"
+description: "How to authenticate requests to the ProxyJam API using an API key."
+---
+
+All requests to the ProxyJam API are authenticated with an API key. Pass the key in the `X-API-Key` header:
+
+```
+X-API-Key: pj_AbCdEf...
+```
+
+## Getting your API key
+
+You can generate and manage API keys in your [personal account](https://ProxyJam.com/dashboard/apikey).
+
+<Info>
+  The raw key value is shown **only once** when you create it. Copy it immediately and store it securely.
+</Info>
+
+## Using your API key
+
+Include the header in every request:
+
+```bash
+curl https://api.proxyjam.com/public/v1/catalog \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+## Supported endpoints
+
+API keys work on all product endpoints:
+
+| Module | Endpoints |
+| --- | --- |
+| Catalog | `GET /catalog` |
+| Orders | `POST /orders`, `GET /orders`, `GET /orders/{id}` |
+| Proxy management | auto-renew, extend, bandwidth, whitelist, sync, protocol |
+| Wallet | `GET /wallet/balance`, transactions |
+
+The following endpoints **do not accept API keys** and require direct user authentication:
+
+- `/users/*` — account and authentication management
+- `/auth/*` — OAuth flows
+- `/payments/*` — payment intents and providers
+- `/notifications/*` — notification preferences
+
+## Managing keys
+
+- `GET /api-keys` — list your keys (prefix and metadata only, not the raw value)
+- `DELETE /api-keys/{key_id}` — revoke a key (cannot be undone)
+
+<Warning>
+  Treat your API key like a password. Do not expose it in client-side code, public repositories, or logs.
+</Warning>

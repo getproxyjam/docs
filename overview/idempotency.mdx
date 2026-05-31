@@ -1,0 +1,43 @@
+---
+title: "Idempotency"
+description: "How to safely retry requests without creating duplicate orders or payments."
+---
+
+Network failures can leave you unsure whether a request succeeded. ProxyJam supports idempotency on create operations so you can retry safely.
+
+## How it works
+
+Include a unique `idempotency_key` (UUID) in your request body. If you send the same key again, the API returns the original response instead of creating a new resource.
+
+```json
+{
+  "offer_id": 42,
+  "idempotency_key": "550e8400-e29b-41d4-a716-446655440000",
+  ...
+}
+```
+
+## Endpoints that support idempotency keys
+
+| Endpoint | Field |
+| --- | --- |
+| `POST /orders` | `idempotency_key` in request body |
+| `POST /orders/guest` | `idempotency_key` in request body |
+
+## Payment intents
+
+For `POST /payments/payment-intents`, pass the idempotency key as an HTTP header:
+
+```
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+```
+
+<Warning>
+  The `Idempotency-Key` header is **required** for payment intents. The request will be rejected without it.
+</Warning>
+
+## Best practices
+
+- Generate a new UUID for each unique operation. Never reuse a key for a different operation.
+- Store the key before making the request so you can resend it on retry.
+- Keys are scoped per user — the same key used by two different users creates two separate resources.

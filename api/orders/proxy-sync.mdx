@@ -1,0 +1,59 @@
+---
+title: "Sync proxy state"
+description: "Manually synchronize a proxy's status and credentials from the provider."
+api: "POST /orders/{order_id}/sync"
+---
+
+Fetches the current state of a proxy directly from the provider and updates the local record. Use this when you suspect the locally stored data (status, expiry, credentials, bandwidth) is stale.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Response
+
+Fresh proxy object after the provider sync. Same shape as the `managed_proxy` object in [Get order](/api/orders/get-order).
+
+<Note>
+  This endpoint makes a live call to the upstream provider. Response times may be higher than other endpoints.
+</Note>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/sync" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.proxies.sync("997b4450-e7ae-4ad9-8a25-996e582049c9")
+    print(proxy.status, proxy.expires_at)
+```
+
+```json Response
+{
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "provider_proxy_id": "1836367",
+  "provider_order_id": "019c8094-c196-7b71-852f-4e5e2e2fceff",
+  "host": "92.113.88.106",
+  "port": 42416,
+  "username": "<proxy-username>",
+  "password": "<proxy-password>",
+  "protocol": "SOCKS5",
+  "status": "active",
+  "expires_at": "2026-03-21T14:22:39Z",
+  "auto_renew": true,
+  "whitelisted_ips": [],
+  "bandwidth_total_gb": 1.0,
+  "bandwidth_used_gb": 0.1
+}
+```
+
+</CodeGroup>

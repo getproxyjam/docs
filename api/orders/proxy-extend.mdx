@@ -1,0 +1,64 @@
+---
+title: "Extend proxy"
+description: "Extend the rental period of a proxy by one or more months."
+api: "POST /orders/{order_id}/extend"
+---
+
+Charges your wallet and extends the proxy subscription at the provider level.
+
+<Warning>
+  This action is billed immediately from your wallet balance. Ensure you have sufficient funds before calling this endpoint.
+</Warning>
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Request body
+
+<ParamField body="months" type="integer" required>
+  Number of months to extend. Min `1`, max `24`.
+</ParamField>
+
+## Response
+
+Updated proxy object with the new `expires_at`. Same shape as the `managed_proxy` object in [Get order](/api/orders/get-order).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/extend" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"months": 1}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.orders.extend(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+        months=1,
+    )
+    print("new expiry:", proxy.expires_at)
+```
+
+```json Response
+{
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "provider_proxy_id": "1836367",
+  "status": "active",
+  "expires_at": "2026-04-21T14:22:39Z",
+  "auto_renew": true,
+  "whitelisted_ips": [],
+  "bandwidth_total_gb": 1.0,
+  "bandwidth_used_gb": null
+}
+```
+
+</CodeGroup>

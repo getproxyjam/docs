@@ -1,0 +1,60 @@
+---
+title: "Proxy types"
+description: "Overview of the proxy types available in the ProxyJam catalog."
+---
+
+Each proxy offer has a `kind` field that describes the underlying network type. Understanding the differences helps you pick the right product for your use case.
+
+## Kinds
+
+| Kind | Description |
+| --- | --- |
+| `datacenter` | Proxies hosted in data centers. Fastest and cheapest, but more easily detected by anti-bot systems. |
+| `residential` | IP addresses assigned to real home internet connections. High anonymity, bypasses most detection. |
+| `mobile` | IP addresses from mobile carrier networks (4G/5G). Highest trust score, ideal for mobile-targeted platforms. |
+
+## Options per kind
+
+Pricing and duration options differ by proxy type.
+
+### Residential options
+
+Each offer includes a list of `options`, where each option has:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `price` | `float` | Price in USD |
+| `period_days` | `int` | Rental period |
+| `period_name` | `string` | Human-readable period label (e.g., `"30 days"`) |
+| `period_months` | `int \| null` | Period in months if applicable |
+
+### Mobile options
+
+Mobile options additionally include traffic-based billing:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `price` | `float` | Price in USD |
+| `traffic_mb` | `int \| null` | Included traffic in MB |
+| `period_days` | `int` | Rental period |
+| `period_name` | `string` | Human-readable period label |
+| `traffic_name` | `string` | Traffic label (e.g., `"5 GB"`) |
+| `period_seconds` | `int` | Period expressed in seconds |
+| `tarification_index` | `int` | Provider-internal tariff index |
+
+## Protocols and IP versions
+
+When placing an order, you can specify:
+
+- `protocol` — `HTTP`, `HTTPS`, or `SOCKS5`
+- `ip_version` — `IPv4` or `IPv6`
+
+Not all offers support every combination. Check the catalog for what each offer supports.
+
+## Filtering the catalog
+
+Use query parameters on `GET /catalog` to filter by kind, country, and availability:
+
+```bash
+GET /catalog?kind=mobile&country=US&is_available=true
+```

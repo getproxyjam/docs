@@ -1,0 +1,97 @@
+---
+title: "Send test webhook"
+description: "Send one immediate test delivery to an endpoint."
+api: "POST /webhooks/{endpoint_id}/test"
+---
+
+Triggers a signed test delivery for the selected endpoint. Test deliveries are persisted for diagnostics but are **not retried**.
+
+## Path parameters
+
+<ParamField path="endpoint_id" type="string" required>
+  Webhook endpoint UUID.
+</ParamField>
+
+## Response
+
+Returns:
+
+- endpoint details
+- delivery state (`delivered`, `failed`, `blocked`, etc.)
+- attempt timeline including response status and latency
+
+## Signature headers
+
+Each request contains:
+
+- `X-ProxyJam-Event`
+- `X-ProxyJam-Delivery-Id`
+- `X-ProxyJam-Timestamp`
+- `X-ProxyJam-Signature`
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/webhooks/wh_01HXYZ/test" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    result = client.webhooks.send_test("wh_01HXYZ")
+    print(result.delivery.delivery.status, result.delivery.delivery.last_http_status)
+    for attempt in result.delivery.attempts:
+        print(attempt.attempt_no, attempt.response_status, attempt.latency_ms)
+```
+
+```json Response
+{
+  "endpoint": {
+    "id": "wh_01HXYZ",
+    "user_id": "user-uuid",
+    "event_type": "proxy.status_changed",
+    "url": "https://example.com/hook",
+    "enabled": true,
+    "secret_preview": "whsec_pre…ABCD",
+    "last_test_at": "2026-05-25T11:30:00Z",
+    "last_delivery_at": "2026-05-25T11:30:00Z",
+    "created_at": "2026-05-20T09:00:00Z",
+    "updated_at": "2026-05-25T11:30:00Z"
+  },
+  "delivery": {
+    "delivery": {
+      "id": "dl_01HXYZ",
+      "endpoint_id": "wh_01HXYZ",
+      "user_id": "user-uuid",
+      "source_event_id": "evt_test",
+      "event_type": "proxy.status_changed",
+      "status": "delivered",
+      "attempt_count": 1,
+      "max_attempts": 5,
+      "is_test": true,
+      "delivered_at": "2026-05-25T11:30:00Z",
+      "last_http_status": 200,
+      "last_latency_ms": 87,
+      "created_at": "2026-05-25T11:30:00Z",
+      "updated_at": "2026-05-25T11:30:00Z"
+    },
+    "attempts": [
+      {
+        "id": "att_1",
+        "delivery_id": "dl_01HXYZ",
+        "attempt_no": 1,
+        "request_headers": {"X-ProxyJam-Event": "proxy.status_changed"},
+        "response_status": 200,
+        "latency_ms": 87,
+        "created_at": "2026-05-25T11:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+</CodeGroup>

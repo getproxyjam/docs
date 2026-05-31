@@ -1,0 +1,65 @@
+---
+title: "Change proxy signature"
+description: "Switch the device signature reported by a mobile rotating proxy."
+api: "POST /orders/{order_id}/signature"
+---
+
+Changes the device signature (e.g. operating system fingerprint) used by the proxy. Available signatures can be listed via [List proxy signatures](/api/mobile/list-signatures).
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order backing the mobile rotating proxy.
+</ParamField>
+
+## Request body
+
+<ParamField body="signature" type="string" required>
+  Target device signature, e.g. `android`, `ios`, `linux`, `windows`. See [List proxy signatures](/api/mobile/list-signatures) for the full set.
+</ParamField>
+
+## Response
+
+Live snapshot of the mobile rotating proxy with the new signature applied. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/signature" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"signature": "android"}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.proxies.rotate_signature(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+        "android",
+    )
+    print(proxy.signature)
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "active",
+  "auto_renew": true,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.example.com",
+  "port": 24534,
+  "username": "pj_abc",
+  "password": "<proxy-password>",
+  "current_ip": "203.0.113.99",
+  "signature": "android",
+  "tags": ["scrape"],
+  "whitelisted_ips": []
+}
+```
+
+</CodeGroup>

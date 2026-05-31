@@ -1,0 +1,347 @@
+---
+title: "MCP Server"
+description: "Use ProxyJam from Claude, OpenAI agents, or any MCP client — without writing HTTP code."
+---
+
+The MCP server is a Model Context Protocol façade over the public API.
+Every endpoint reachable with an `X-API-Key` is also reachable as an
+MCP **tool** — so LLM agents can list catalog offers, place orders,
+manage proxies, and inspect wallet balances directly, without you
+hand-writing HTTP calls.
+
+The server is a thin proxy in front of `/public/v1`: same auth model,
+same idempotency, same rate limits.
+
+```
+Endpoint:   https://mcp.proxyjam.com/mcp
+Transport:  Streamable HTTP (MCP spec 2025-03-26)
+Auth:       X-API-Key header per request
+```
+
+## Get an API key
+
+Generate one in your dashboard → API Keys, then keep the raw value
+safe (it is shown only once). See
+[Authentication](/overview/authentication) for the full flow.
+
+```bash
+curl -X POST https://api.proxyjam.com/public/v1/api-keys \
+  -H "Authorization: Bearer <JWT>" \
+  -d '{"name": "my-mcp-client"}'
+```
+
+## Connect
+
+### Claude Code
+
+```bash
+claude mcp add proxyjam \
+  --transport http \
+  --url https://mcp.proxyjam.com/mcp \
+  --header "X-API-Key: pj_..."
+```
+
+Then in a Claude Code session: `/mcp` to see registered servers, or
+just ask Claude something like *"list my proxy orders"* — it will
+discover and call the right tool.
+
+### Claude Desktop
+
+Edit `claude_desktop_config.json`
+(macOS: `~/Library/Application Support/Claude/`,
+Windows: `%APPDATA%\Claude\`):
+
+```json
+{
+  "mcpServers": {
+    "proxyjam": {
+      "url": "https://mcp.proxyjam.com/mcp",
+      "headers": {
+        "X-API-Key": "pj_..."
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The ProxyJam tools appear in the tools menu.
+
+### OpenAI Agents SDK
+
+```python
+from agents import Agent
+from agents.mcp import MCPServerStreamableHttp
+
+server = MCPServerStreamableHttp(
+    name="proxyjam",
+    params={
+        "url": "https://mcp.proxyjam.com/mcp",
+        "headers": {"X-API-Key": "pj_..."},
+    },
+)
+
+agent = Agent(
+    name="ProxyShopAssistant",
+    instructions="Help the user manage their ProxyJam proxies.",
+    mcp_servers=[server],
+)
+```
+
+### Generic FastMCP client (Python)
+
+```python
+from fastmcp import Client
+
+async with Client(
+    "https://mcp.proxyjam.com/mcp",
+    headers={"X-API-Key": "pj_..."},
+) as client:
+    tools = await client.list_tools()
+    result = await client.call_tool("list_offers", {"kind": "residential"})
+    print(result.content[0].text)
+```
+
+## Tool catalog
+
+<Info>
+  **Money-spending tools default to dry-run.** `create_proxy_order`,
+  `extend_proxy_period`, and `buy_proxy_bandwidth` require
+  `confirm=true` to actually charge the wallet. Without it they
+  return a preview with the offer, current balance, and what would
+  happen. Always supply an `idempotency_key` (any unique string,
+  typically a UUIDv4) so retries replay the stored answer instead of
+  double-charging.
+</Info>
+
+### Catalog
+
+#### `list_offers`
+
+List available proxy offers, optionally filtered.
+
+| Argument | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `kind` | `residential` / `datacenter` / `mobile` / `static` / `rotating` | `null` | See `ref://offer-kinds`. |
+| `country` | `XX` (ISO-3166-1 alpha-2) | `null` | E.g. `US`, `GB`. |
+| `response_format` | `csv` / `json` | `csv` | CSV is ~50% cheaper in LLM tokens. |
+
+Returns a flat table — one row per offer, with `kind`, `id`, `name`,
+`country_code`, `mode`, `currency`, `price_from_usd`, and `options`
+(JSON-encoded list of tariff variants). Use `id` as `offer_id` in
+`create_proxy_order`.
+
+### Orders
+
+#### Reads
+
+| Tool | Arguments | Purpose |
+| --- | --- | --- |
+| `list_my_orders` | `status?`, `limit=50`, `offset=0`, `response_format` | Paginated list of your orders. |
+| `get_order` | `order_id` | Full detail of one order incl. proxy access. |
+| `get_my_traffic_summary` | `response_format` | Aggregate traffic across all active proxies. |
+| `get_order_traffic` | `order_id` | Traffic for a single order. |
+
+#### Destructive — dry-run by default
+
+These require `confirm=true` + an `idempotency_key` to actually
+execute. Without `confirm=true` they return a preview and don't touch
+the API mutation path.
+
+| Tool | Arguments |
+| --- | --- |
+| `create_proxy_order` | `offer_id`, `quantity` (1-50), `idempotency_key`, `period_days` (1-360, default 30), `payment_method` (`wallet`/`cryptocloud`/`stripe`/`telegram_stars`), `payment_currency?`, `promo_code?`, `auto_renew=false`, `tarification_index?`, `confirm=false` |
+| `extend_proxy_period` | `order_id`, `months` (1-24), `idempotency_key`, `confirm=false` |
+| `buy_proxy_bandwidth` | `order_id`, `bandwidth_gb` (1-5000), `idempotency_key`, `confirm=false` |
+
+#### Non-destructive mutations
+
+No dry-run because nothing is charged.
+
+| Tool | Arguments |
+| --- | --- |
+| `set_auto_renew` | `order_id`, `enabled` |
+| `set_proxy_whitelist` | `order_id`, `whitelisted_ips` (list of IPv4/IPv6) |
+| `change_proxy_protocol` | `order_id`, `new_type` (`HTTP` / `SOCKS5`) |
+| `sync_proxy_state` | `order_id` — force-pull state from the upstream provider |
+
+### Wallet
+
+| Tool | Arguments | Purpose |
+| --- | --- | --- |
+| `list_my_wallets` | `response_format` | All currencies you hold. |
+| `get_wallet_balance` | `currency` (`USD` / `STAR`) | Single-currency balance. |
+| `list_wallet_transactions` | `currency`, `limit=100`, `offset=0`, `response_format` | Transaction history. |
+| `get_transaction` | `transaction_id` | Single transaction detail. |
+
+## End-to-end example: place an order
+
+Three calls — discover, preview, confirm.
+
+```python
+# 1. Discover available offers
+offers = await client.call_tool("list_offers", {"kind": "residential"})
+# CSV with kind, id, name, country_code, price_from_usd, …
+
+# 2. Preview a purchase (no charge happens)
+preview = await client.call_tool("create_proxy_order", {
+    "offer_id": 42,
+    "quantity": 5,
+    "idempotency_key": "order-2026-05-25-abc",
+    "period_days": 30,
+    "payment_method": "wallet",
+    # confirm omitted → defaults to false
+})
+# Returns: {"dry_run": true, "matched_offer": {...}, "your_wallets": [...]}
+
+# 3. After the user approves, confirm with the SAME idempotency_key
+order = await client.call_tool("create_proxy_order", {
+    "offer_id": 42,
+    "quantity": 5,
+    "idempotency_key": "order-2026-05-25-abc",   # same string
+    "period_days": 30,
+    "payment_method": "wallet",
+    "confirm": True,
+})
+# Returns: {"orders": [{"id": "...", "status": "PAID", ...}, ...]}
+```
+
+If step 3 errors out (network hiccup, etc.) you can safely retry with
+the same `idempotency_key` — `PostgresIdempotencyStore` returns the
+stored answer instead of creating a second batch of orders.
+
+## Reference resources
+
+Static enums are exposed as MCP resources so they don't bloat tool
+descriptions. Most clients let the agent fetch resources on demand via
+`resources/read`.
+
+| URI | Contents |
+| --- | --- |
+| `ref://order-statuses` | `new`, `waiting_payment`, `paid`, `provisioned`, `provisioning_failed`, `cancelled`, `refunded`, `expired`. |
+| `ref://currencies` | `USD`, `STAR` (Telegram Stars). |
+| `ref://proxy-types` | `HTTP`, `SOCKS5`. |
+| `ref://offer-kinds` | `residential`, `datacenter`, `mobile`, `static`, `rotating`. |
+| `ref://payment-methods` | `wallet`, `cryptocloud`, `stripe`, `telegram_stars`. |
+
+```python
+contents = await client.read_resource("ref://order-statuses")
+print(contents[0].text)
+```
+
+## Response formats
+
+Tools that return tabular data accept `response_format`:
+
+- **`csv` (default)** — one header row, one data row per record;
+  nested values are JSON-encoded inside a single cell. Roughly half
+  the tokens of equivalent JSON.
+- **`json`** — list of objects; use when you need to script over
+  nested structures.
+
+Non-list tools always return JSON.
+
+### Paginated tools
+
+`list_my_orders` and `list_wallet_transactions` always wrap the rows
+in a pagination envelope so the LLM knows when more pages exist:
+
+```json
+{
+  "pagination": {
+    "total": 120,        // total rows on the server (when known)
+    "limit": 50,         // page size used
+    "offset": 0,         // where this page started
+    "returned": 50,      // rows actually returned
+    "has_more": true     // call again with offset += returned
+  },
+  "rows_csv": "id,status,...\norder-1,paid,...\n..."   // csv mode
+  // or
+  "rows": [{...}, ...]                                  // json mode
+}
+```
+
+If `has_more` is `true`, request the next page with
+`offset = previous offset + returned`. Loop until `has_more` is
+`false`.
+
+## Errors
+
+Tools surface upstream errors verbatim as `ToolError` with the full
+HTTP response body and the `X-Correlation-ID`. Example:
+
+```
+HTTP 400 Bad Request (correlation_id=req_…): {
+  "detail": "Insufficient wallet balance: have 5.00 USD, need 12.50"
+}
+```
+
+The LLM sees the entire body, so it can either retry with a corrected
+argument or pass the error back to the user with a clear explanation.
+
+## Idempotency
+
+Every destructive tool that hits a `POST` endpoint takes
+`idempotency_key`. The MCP server forwards it as `Idempotency-Key` on
+the HTTP request, and the API persists `(key, response)` pairs.
+Replays return the original answer (so confirm=true on a previously
+created order won't double-charge).
+
+Use a fresh key per **logical** operation:
+
+- Place an order → one key.
+- A retry of the same order → same key.
+- A *different* order → new key.
+
+## Out of scope
+
+The MCP server intentionally does **not** expose:
+
+- `/users/*` and `/auth/*` — account management requires JWT, not an
+  API key.
+- `/payments/*` — payment intents are user-initiated through the
+  dashboard.
+- `/api-keys/*` — you cannot manage keys through a key (security).
+
+If you need any of these, use the [HTTP API](/api/auth/sign-in)
+directly.
+
+## Self-hosting
+
+The MCP server is also distributed inside the backend repo as
+`src/apps/mcp/`. Run it locally with:
+
+```bash
+# HTTP transport (default) — listens on :8081/mcp
+python -m src.apps.mcp
+
+# stdio transport — for clients that prefer to launch a subprocess
+MCP_API_KEY=pj_... python -m src.apps.mcp --transport stdio
+```
+
+Environment variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `MCP_PORT` | `8081` | HTTP bind port. |
+| `MCP_API_KEY` | — | Used only in stdio transport; HTTP clients always send their own header. |
+| `PUBLIC_API_INTERNAL_URL` | `http://api:8000/public/v1` | Where the proxy client forwards requests. |
+
+In docker-compose the service is started by default; tail logs with
+`make mcp-logs`.
+
+## Troubleshooting
+
+**Tool calls return `Missing API key`** — the `X-API-Key` header isn't
+reaching the server. In Claude Desktop check the `headers` block in
+`claude_desktop_config.json`; in Claude Code re-run `claude mcp add`
+with `--header`.
+
+**`HTTP 401 Invalid API key`** — the key is wrong, revoked, or
+expired. Generate a new one via the dashboard.
+
+**Tools list is empty** — the MCP client cached an old session.
+Restart Claude Desktop / reconnect the Claude Code server.
+
+**`HTTP 422`** on `list_offers` — only the values listed in
+`ref://offer-kinds` are accepted for `kind`. Earlier docs mentioned
+`mobile_rotating` — that's wrong, use `mobile`.

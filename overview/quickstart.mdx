@@ -1,0 +1,101 @@
+---
+title: "Quickstart"
+description: "Place your first proxy order in under five minutes."
+---
+
+This guide walks you through the full flow: create an account, browse the catalog, and place an order.
+
+## Step 1 — Create an account
+
+<Steps>
+  <Step title="Register">
+    ```bash
+    curl -X POST https://api.proxyjam.com/public/v1/users/sign-up \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "you@example.com",
+        "password": "your-password"
+      }'
+    ```
+
+    The response includes `access_token` and `refresh_token`. Save them.
+
+    ```json
+    {
+      "access_token": "eyJ...",
+      "refresh_token": "eyJ...",
+      "token_type": "bearer",
+      "expires_in": 86400,
+      "user": {
+        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "email": "you@example.com",
+        "is_active": true,
+        "is_verified": false,
+        "created_at": "2024-01-01T00:00:00Z"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Browse the catalog">
+    Use your token to fetch available proxy offers:
+
+    ```bash
+    curl https://api.proxyjam.com/public/v1/catalog \
+      -H "Authorization: Bearer <access_token>"
+    ```
+
+    Filter by type to narrow results:
+
+    ```bash
+    curl "https://api.proxyjam.com/public/v1/catalog?kind=residential&country=US" \
+      -H "Authorization: Bearer <access_token>"
+    ```
+
+    Note the `id` of the offer you want to purchase.
+  </Step>
+
+  <Step title="Place an order">
+    ```bash
+    curl -X POST https://api.proxyjam.com/public/v1/orders \
+      -H "Authorization: Bearer <access_token>" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "offer_id": 42,
+        "proxy_type": "residential",
+        "ip_version": "IPv4",
+        "protocol": "HTTP",
+        "country": "US",
+        "quantity": 1,
+        "period_days": 30,
+        "payment_method": "wallet"
+      }'
+    ```
+
+    The response contains your proxy credentials under `proxy_access`:
+
+    ```json
+    {
+      "id": "order-uuid",
+      "status": "active",
+      "proxy_access": [
+        {
+          "host": "proxy.ProxyJam.com",
+          "port": 10001,
+          "username": "user_abc",
+          "password": "<your-password>",
+          "protocol": "HTTP",
+          "status": "active",
+          "expires_at": "2024-02-01T00:00:00Z"
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+## Next steps
+
+- [Idempotency](/overview/idempotency) — make your order requests safe to retry
+- [Payment methods](/overview/payment-methods) — top up your wallet or pay with crypto
+- [Error reference](/overview/errors) — understand error responses

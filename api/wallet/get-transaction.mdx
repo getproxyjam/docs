@@ -1,0 +1,50 @@
+---
+title: "Get transaction"
+description: "Retrieve details for a specific wallet transaction."
+api: "GET /wallet/transactions/{transaction_id}"
+---
+
+Returns a single transaction by ID. You can only retrieve transactions belonging to your account.
+
+## Path parameters
+
+<ParamField path="transaction_id" type="string" required>
+  UUID of the transaction.
+</ParamField>
+
+## Response
+
+A single `TransactionResponse` object. See [List transactions](/api/wallet/transactions#response) for the field reference.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.proxyjam.com/public/v1/wallet/transactions/txn-uuid-1 \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    tx = client.wallets.get_transaction("txn-uuid-1")
+    print(tx.transaction_type, tx.amount_as_decimal(), tx.status)
+```
+
+```json Response
+{
+  "id": "txn-uuid-1",
+  "amount": 20.0,
+  "currency": "USD",
+  "transaction_type": "deposit",
+  "status": "completed",
+  "payment_method": "cryptocloud",
+  "description": "Wallet top-up via CryptoCloud",
+  "created_at": "2024-01-15T09:00:00Z",
+  "updated_at": "2024-01-15T09:01:30Z"
+}
+```
+
+</CodeGroup>

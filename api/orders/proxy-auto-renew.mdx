@@ -1,0 +1,84 @@
+---
+title: "Set auto-renew"
+description: "Enable or disable automatic renewal for a proxy."
+api: "POST /orders/{order_id}/auto-renew"
+---
+
+Toggles automatic renewal on the provider side. When enabled, the proxy subscription renews automatically at expiry.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Request body
+
+<ParamField body="enabled" type="boolean" required>
+  `true` to enable auto-renew, `false` to disable it.
+</ParamField>
+
+## Response
+
+Updated proxy object. Residential orders return the standard `managed_proxy` shape (see [Get order](/api/orders/get-order#response)).
+
+<Note>
+  **Mobile rotating orders** return a live snapshot instead — shape with
+  `"type": "mobile"` and mobile-specific fields (`signature`, `tags`,
+  `current_ip`). The Python SDK dispatches automatically: `client.orders.set_auto_renew()`
+  returns either a `Proxy` or a `MobileProxy` based on the response shape.
+</Note>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/auto-renew" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient, MobileProxy
+
+with ProxyJamClient.from_env() as client:
+    result = client.orders.set_auto_renew(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+        False,
+    )
+    print(result.auto_renew, result.expires_at)
+    if isinstance(result, MobileProxy):
+        print("mobile signature:", result.signature)
+```
+
+```json Residential Response
+{
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "provider_proxy_id": "1836367",
+  "auto_renew": false,
+  "status": "active",
+  "expires_at": "2026-03-21T14:22:39Z"
+}
+```
+
+```json Mobile Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "active",
+  "auto_renew": false,
+  "expires_at": "2026-03-21T14:22:39Z",
+  "host": "gw.example.com",
+  "port": 24534,
+  "username": "pj_abc",
+  "password": "<proxy-password>",
+  "current_ip": "203.0.113.10",
+  "signature": "android",
+  "tags": ["scrape"],
+  "whitelisted_ips": []
+}
+```
+
+</CodeGroup>

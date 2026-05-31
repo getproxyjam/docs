@@ -1,0 +1,58 @@
+---
+title: "Reset proxy IP"
+description: "Rotate the public IP for a mobile rotating proxy."
+api: "POST /orders/{order_id}/reset"
+---
+
+Triggers an immediate IP rotation at the upstream pool. The proxy keeps the same host/port and credentials; only the externally-visible IP changes.
+
+<Note>
+  This makes a live call to the upstream pool. There is no charge per reset, but excessive rotation may be rate-limited at the pool level.
+</Note>
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order backing the mobile rotating proxy.
+</ParamField>
+
+## Response
+
+Live snapshot of the mobile rotating proxy after the rotation. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile) — the response includes the refreshed `current_ip` along with the rest of the proxy state.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/reset" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.proxies.reset_ip("997b4450-e7ae-4ad9-8a25-996e582049c9")
+    print("new IP:", proxy.current_ip)
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "active",
+  "auto_renew": true,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.example.com",
+  "port": 24534,
+  "username": "pj_abc",
+  "password": "<proxy-password>",
+  "current_ip": "203.0.113.99",
+  "signature": "android",
+  "tags": ["scrape"],
+  "whitelisted_ips": []
+}
+```
+
+</CodeGroup>

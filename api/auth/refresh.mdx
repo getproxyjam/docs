@@ -1,0 +1,39 @@
+---
+title: "Refresh token"
+description: "Exchange a refresh token for a new access token."
+api: "POST /users/refresh"
+---
+
+Issues a new `access_token` using a valid `refresh_token`. The refresh token is unchanged.
+
+## Request body
+
+<ParamField body="refresh_token" type="string" required>
+  A valid refresh token obtained at sign-in or sign-up.
+</ParamField>
+
+## Response
+
+Same shape as [Sign in](/api/auth/sign-in#response). The returned `refresh_token` is the same one you sent.
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl -X POST https://api.proxyjam.com/public/v1/users/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refresh_token": "<YOUR_REFRESH_TOKEN>"}'
+```
+
+```json Response
+{
+  "access_token": "<NEW_ACCESS_TOKEN>",
+  "refresh_token": "<YOUR_REFRESH_TOKEN>",
+  "token_type": "bearer",
+  "expires_in": 86400,
+  "user": { ... }
+}
+```
+
+</CodeGroup>

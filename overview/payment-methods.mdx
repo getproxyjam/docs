@@ -1,0 +1,55 @@
+---
+title: "Payment methods"
+description: "How payments work in ProxyJam — wallet balance and cryptocurrency."
+---
+
+ProxyJam supports two payment methods for proxy orders.
+
+## Wallet
+
+Your account wallet holds a USD balance that you top up via a payment provider. When placing an order with `"payment_method": "wallet"`, the order amount is deducted from your balance instantly. No external redirect is required.
+
+<Info>
+  Wallet payments are only available for authenticated users. Guest checkout does not support wallet.
+</Info>
+
+## CryptoCloud
+
+CryptoCloud allows payment with cryptocurrency. When you place an order with `"payment_method": "cryptocloud"`, the API returns a `payment_url` you redirect the user to.
+
+```json
+{
+  "payment_info": {
+    "payment_method": "cryptocloud",
+    "payment_intent_id": "pi_abc123",
+    "payment_url": "https://pay.cryptocloud.plus/..."
+  }
+}
+```
+
+After payment is confirmed, CryptoCloud sends a webhook to ProxyJam, which activates the order and provisions the proxies.
+
+## Topping up your wallet
+
+To add funds to your wallet:
+
+1. Call `GET /payments/providers` to see available top-up providers.
+2. Call `POST /payments/payment-intents` with the amount and your chosen `provider_id`.
+3. Redirect the user to `redirect_url` in the response.
+4. After payment, ProxyJam receives the webhook and credits your wallet automatically.
+
+<Warning>
+  `POST /payments/payment-intents` requires an `Idempotency-Key` header. See [Idempotency](/overview/idempotency).
+</Warning>
+
+## Payment flow diagram
+
+```
+User → POST /payments/payment-intents → redirect_url
+     ↓
+  Provider payment page
+     ↓
+  Provider → POST /webhooks/payments/{provider_id} (ProxyJam)
+     ↓
+  Wallet credited / Order activated
+```

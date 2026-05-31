@@ -1,0 +1,35 @@
+---
+title: "Delete webhook"
+description: "Soft-delete a webhook endpoint."
+api: "DELETE /webhooks/{endpoint_id}"
+---
+
+Soft-deletes the endpoint and cancels pending retries for this endpoint.
+
+## Path parameters
+
+<ParamField path="endpoint_id" type="string" required>
+  Webhook endpoint UUID.
+</ParamField>
+
+## Response
+
+Returns `204 No Content` on success.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X DELETE "https://api.proxyjam.com/public/v1/webhooks/wh_01HXYZ" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    client.webhooks.delete("wh_01HXYZ")
+```
+
+</CodeGroup>

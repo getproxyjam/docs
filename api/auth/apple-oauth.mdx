@@ -1,0 +1,111 @@
+---
+title: "Apple OAuth"
+description: "Authenticate or link accounts with Apple."
+---
+
+ProxyJam supports Sign in with Apple for sign-in and account linking. See the [Authentication guide](/overview/authentication) for the full flow.
+
+## Endpoints
+
+### Get authorization URL
+
+<Card title="GET /auth/apple" icon="arrow-up-right-from-square">
+  Returns an Apple authorization URL to redirect the user to.
+</Card>
+
+**Query parameters:**
+
+<ParamField query="redirect_uri" type="string">
+  Your frontend URL that Apple will redirect back to after consent.
+</ParamField>
+
+**Response:**
+
+```json
+{
+  "authorization_url": "https://appleid.apple.com/auth/authorize?..."
+}
+```
+
+---
+
+### Handle callback
+
+<Card title="POST /auth/apple/callback" icon="arrow-down-to-line">
+  Exchanges the authorization code for JWT tokens. Apple sends callback fields as form data when using `response_mode=form_post`.
+</Card>
+
+**Form fields:**
+
+<ParamField body="code" type="string" required>
+  Authorization code from Apple.
+</ParamField>
+
+<ParamField body="state" type="string">
+  CSRF state parameter.
+</ParamField>
+
+<ParamField body="id_token" type="string">
+  Identity token from Apple. Optional because the backend can also retrieve it from the token exchange.
+</ParamField>
+
+<ParamField body="user" type="string">
+  Optional JSON payload with user profile data (typically only on first authorization).
+</ParamField>
+
+**Response:** same as [Sign in](/api/auth/sign-in#response), plus:
+
+<ResponseField name="is_new_user" type="boolean">
+  `true` if a new account was created during this OAuth flow.
+</ResponseField>
+
+<ResponseField name="was_linked" type="boolean">
+  `true` if an existing account was automatically linked.
+</ResponseField>
+
+---
+
+### Link Apple account
+
+<Card title="POST /auth/apple/link" icon="link">
+  Links Apple to an existing authenticated account.
+</Card>
+
+Requires `Authorization: Bearer <access_token>`.
+
+**Request body:**
+
+<ParamField body="code" type="string" required>
+  Apple authorization code.
+</ParamField>
+
+**Response:**
+
+<ResponseField name="provider" type="string">`apple`</ResponseField>
+<ResponseField name="provider_email" type="string">Email address on the Apple account (if provided).</ResponseField>
+<ResponseField name="provider_user_id" type="string">Apple user ID (`sub`).</ResponseField>
+<ResponseField name="linked_at" type="string">ISO 8601 timestamp.</ResponseField>
+
+---
+
+### Unlink Apple account
+
+<Card title="DELETE /auth/apple/unlink" icon="link-slash">
+  Removes the Apple link from the current account.
+</Card>
+
+Requires `Authorization: Bearer <access_token>`.
+
+<Warning>
+  You cannot unlink Apple if it is your only authentication method and you have no password set.
+</Warning>
+
+---
+
+### Get connected accounts
+
+<Card title="GET /auth/connected-accounts" icon="list">
+  Returns all OAuth providers linked to the current account.
+</Card>
+
+Requires `Authorization: Bearer <access_token>`.

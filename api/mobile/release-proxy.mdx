@@ -1,0 +1,58 @@
+---
+title: "Release proxy"
+description: "Cancel a mobile rotating proxy and release its port."
+api: "POST /orders/{order_id}/release"
+---
+
+Cancels the proxy at the upstream pool and releases its port back to the available inventory.
+
+<Warning>
+  This is irreversible. The order moves to a cancelled state and the proxy can no longer be used. Any prepaid traffic on the proxy is forfeited.
+</Warning>
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order backing the mobile rotating proxy.
+</ParamField>
+
+## Response
+
+Final snapshot of the cancelled mobile rotating proxy. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile), with `status` set to `cancelled`.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/release" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.proxies.release("997b4450-e7ae-4ad9-8a25-996e582049c9")
+    print(proxy.status)
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "cancelled",
+  "auto_renew": false,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.example.com",
+  "port": 24534,
+  "username": "pj_abc",
+  "password": "<proxy-password>",
+  "current_ip": null,
+  "signature": null,
+  "tags": [],
+  "whitelisted_ips": []
+}
+```
+
+</CodeGroup>

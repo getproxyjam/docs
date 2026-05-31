@@ -1,0 +1,41 @@
+---
+title: "List proxy signatures"
+description: "Catalog of device signatures supported for mobile rotating proxies."
+api: "GET /orders/mobile-signatures"
+---
+
+Returns the set of device signatures available to use with [Change proxy signature](/api/mobile/change-proxy-signature). The list is provider-managed and may change over time.
+
+This endpoint does not require authentication, but the SDK forwards `X-API-Key` if one is configured.
+
+## Response
+
+A flat JSON array of signature strings.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.proxyjam.com/public/v1/orders/mobile-signatures
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    signatures = client.proxies.signatures()
+    print(signatures)
+```
+
+```json Response
+[
+  "android",
+  "ios",
+  "linux",
+  "windows",
+  "macos"
+]
+```
+
+</CodeGroup>

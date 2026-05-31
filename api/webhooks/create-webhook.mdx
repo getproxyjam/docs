@@ -1,0 +1,71 @@
+---
+title: "Create webhook"
+description: "Create a webhook endpoint for proxy status change events."
+api: "POST /webhooks"
+---
+
+Creates a new endpoint and returns a one-time signing secret. Save this secret immediately; it is not retrievable later.
+
+## Request body
+
+<ParamField body="url" type="string" required>
+  Destination URL for webhook delivery.
+</ParamField>
+
+<ParamField body="enabled" type="boolean">
+  Whether the endpoint is active immediately. Defaults to `true`.
+</ParamField>
+
+## Response
+
+Returns endpoint fields plus:
+
+<ResponseField name="signing_secret" type="string">
+  One-time secret used by the receiver to verify `X-ProxyJam-Signature`.
+</ResponseField>
+
+## Notes
+
+- In non-development environments, the URL must use HTTPS.
+- Only one active endpoint is allowed per user for `proxy.status_changed`.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.proxyjam.com/public/v1/webhooks \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/hook",
+    "enabled": true
+  }'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    created = client.webhooks.create("https://example.com/hook")
+    # Store created.signing_secret somewhere safe — it is shown only once.
+    print(created.id, created.signing_secret)
+```
+
+```json Response
+{
+  "id": "wh_01HXYZ...",
+  "user_id": "user-uuid",
+  "event_type": "proxy.status_changed",
+  "url": "https://example.com/hook",
+  "enabled": true,
+  "secret_preview": "whsec_pre…ABCD",
+  "signing_secret": "whsec_full_value_shown_once",
+  "last_test_at": null,
+  "last_delivery_at": null,
+  "created_at": "2026-05-25T10:00:00Z",
+  "updated_at": "2026-05-25T10:00:00Z"
+}
+```
+
+</CodeGroup>

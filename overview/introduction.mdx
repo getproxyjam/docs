@@ -1,0 +1,45 @@
+---
+title: "Introduction"
+description: "ProxyJam is a proxy marketplace API that lets you browse, purchase, and manage residential, datacenter, and mobile proxies."
+---
+
+ProxyJam gives you programmatic access to a catalog of proxy offers from multiple providers. You can browse offers, place orders, and manage your proxies — all through a single REST API authenticated with an API key.
+
+## Base URL
+
+All public API requests go to:
+
+```
+https://api.proxyjam.com/public/v1
+```
+
+## Authentication
+
+Every request is authenticated with an API key in the `X-API-Key` header:
+
+```
+X-API-Key: pj_AbCdEf...
+```
+
+Get your key from your [personal account](https://ProxyJam.com/dashboard/apikey). See [Authentication](/overview/authentication) for details.
+
+## What you can do
+
+<CardGroup cols={2}>
+  <Card title="Browse the catalog" icon="list" href="/api/catalog/list-offers">
+    Query available proxy offers grouped by type, country, and availability.
+  </Card>
+  <Card title="Place orders" icon="cart-shopping" href="/api/orders/create-order">
+    Order proxies and receive credentials immediately after payment.
+  </Card>
+  <Card title="Manage proxies" icon="sliders" href="/api/orders/proxy-auto-renew">
+    Auto-renew, extend, change protocol, manage whitelists, and sync credentials.
+  </Card>
+  <Card title="Check your wallet" icon="wallet" href="/api/wallet/balance">
+    View balance and transaction history.
+  </Card>
+</CardGroup>
+
+## Request format
+
+All requests and responses use JSON. Include `Content-Type: application/json` for requests with a body.

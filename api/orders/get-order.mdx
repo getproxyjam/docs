@@ -1,0 +1,98 @@
+---
+title: "Get order"
+description: "Retrieve the details of a specific order."
+api: "GET /orders/{order_id}"
+---
+
+Returns full details for a single order, including proxy credentials if the order is active.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Response
+
+Same shape as [Create order response](/api/orders/create-order#response).
+
+<Note>
+  You can only retrieve orders that belong to your account. Requesting another user's order returns `403 Forbidden`.
+</Note>
+
+<Note id="response-mobile">
+  **Mobile rotating orders** return a different shape — a live snapshot
+  fetched from the upstream provider on each request. The response carries
+  `"type": "mobile"` and mobile-specific fields (`signature`, `tags`,
+  `current_ip`). The Python SDK dispatches automatically: `client.orders.get()`
+  returns either an `Order` or a `MobileProxy` based on the response shape.
+</Note>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.proxyjam.com/public/v1/orders/order-uuid-here \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient, MobileProxy
+
+with ProxyJamClient.from_env() as client:
+    result = client.orders.get("order-uuid-here")
+    if isinstance(result, MobileProxy):
+        print(result.signature, result.current_ip)
+    else:
+        print(result.status, result.proxy_host, result.proxy_port)
+```
+
+```json Residential Response
+{
+  "id": "order-uuid-here",
+  "status": "active",
+  "total_usd": 7.0,
+  "proxy_type": "residential",
+  "ip_version": "IPv4",
+  "protocol": "HTTP",
+  "country": "US",
+  "quantity": 2,
+  "period_days": 30,
+  "proxy_access": [
+    {
+      "id": "1836367",
+      "host": "proxy.ProxyJam.com",
+      "port": 10001,
+      "username": "usr_abc",
+      "password": "<proxy-password>",
+      "protocol": "HTTP",
+      "status": "active",
+      "expires_at": "2024-02-14T10:00:00Z",
+      "whitelisted_ips": [],
+      "bandwidth_total_gb": 1.0,
+      "bandwidth_used_gb": 0.0
+    }
+  ]
+}
+```
+
+```json Mobile Response
+{
+  "type": "mobile",
+  "id": "order-uuid-here",
+  "status": "active",
+  "auto_renew": true,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.example.com",
+  "port": 24534,
+  "username": "pj_abc",
+  "password": "<proxy-password>",
+  "current_ip": "203.0.113.10",
+  "signature": "android",
+  "tags": ["scrape"],
+  "whitelisted_ips": []
+}
+```
+
+</CodeGroup>

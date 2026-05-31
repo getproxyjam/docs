@@ -1,0 +1,62 @@
+---
+title: "Create guest order"
+description: "Place a proxy order without a user account."
+api: "POST /orders/guest"
+---
+
+Allows anonymous users to purchase proxies without registering. Only CryptoCloud payment is supported for guest orders.
+
+<Note>
+  Guest orders are paid via CryptoCloud only. Wallet payment is not available without an account.
+</Note>
+
+## Request body
+
+Same fields as [Create order](/api/orders/create-order#request-body), plus:
+
+<ParamField body="email" type="string" required>
+  Email address to send the order confirmation and proxy credentials to.
+</ParamField>
+
+<ParamField body="payment_method" type="string" default="cryptocloud">
+  Only `cryptocloud` is accepted for guest orders.
+</ParamField>
+
+## Response
+
+Same as [Create order](/api/orders/create-order#response). The `payment_info.payment_url` will always be present.
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl -X POST https://api.proxyjam.com/public/v1/orders/guest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "guest@example.com",
+    "offer_id": 42,
+    "payment_method": "cryptocloud",
+    "proxy_type": "residential",
+    "country": "DE",
+    "quantity": 1,
+    "period_days": 7,
+    "idempotency_key": "550e8400-e29b-41d4-a716-446655440001"
+  }'
+```
+
+```json Response
+{
+  "id": "order-uuid-guest",
+  "status": "pending_payment",
+  "total_usd": 2.5,
+  "payment_info": {
+    "payment_method": "cryptocloud",
+    "payment_intent_id": "pi_abc123",
+    "payment_url": "https://pay.cryptocloud.plus/invoice/abc123"
+  },
+  "proxy_access": []
+}
+```
+
+</CodeGroup>

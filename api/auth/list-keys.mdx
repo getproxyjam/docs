@@ -1,0 +1,67 @@
+---
+title: "List API keys"
+description: "Retrieve all API keys for the authenticated user."
+api: "GET /api-keys"
+---
+
+Returns the authenticated user's API keys. The raw key is never returned — only the prefix and metadata.
+
+Revoked keys are not included in the response. Expired keys are still returned so you can identify and rotate them.
+
+## Response
+
+<ResponseField name="keys" type="object[]">
+  <Expandable>
+    <ResponseField name="id" type="string">
+      Unique identifier of the API key.
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Human-readable label.
+    </ResponseField>
+    <ResponseField name="key_prefix" type="string">
+      First 8 characters of the key.
+    </ResponseField>
+    <ResponseField name="scopes" type="string[]">
+      Permission scopes.
+    </ResponseField>
+    <ResponseField name="is_active" type="boolean">
+      Whether the key is active.
+    </ResponseField>
+    <ResponseField name="created_at" type="string">
+      ISO 8601 creation timestamp.
+    </ResponseField>
+    <ResponseField name="expires_at" type="string">
+      Expiration timestamp or `null`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of keys.
+</ResponseField>
+
+<RequestExample>
+```bash
+curl https://api.proxyjam.com/public/v1/api-keys \
+  -H "Authorization: Bearer <access_token>"
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "keys": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "CI pipeline",
+      "key_prefix": "pj_AbCdE",
+      "scopes": [],
+      "is_active": true,
+      "created_at": "2026-02-22T09:45:00Z",
+      "expires_at": "2026-05-23T09:45:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+</ResponseExample>

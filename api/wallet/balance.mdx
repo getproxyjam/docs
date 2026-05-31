@@ -1,0 +1,50 @@
+---
+title: "Get wallet balance"
+description: "Return the current balance of the authenticated user's wallet."
+api: "GET /wallet/balance"
+---
+
+Returns the user's current wallet balance. A wallet is created automatically on first access.
+
+## Response
+
+<ResponseField name="wallet_id" type="string">
+  UUID of the wallet.
+</ResponseField>
+
+<ResponseField name="balance" type="number">
+  Current balance in USD.
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  Always `USD`.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.proxyjam.com/public/v1/wallet/balance \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+# The Python SDK calls the multi-currency endpoint at
+# /wallets/{currency}/balance under the hood.
+with ProxyJamClient.from_env() as client:
+    balance = client.wallets.get_balance("USD")
+    print(balance.balance, balance.currency)
+```
+
+```json Response
+{
+  "wallet_id": "wallet-uuid",
+  "balance": 42.50,
+  "currency": "USD"
+}
+```
+
+</CodeGroup>

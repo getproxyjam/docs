@@ -1,0 +1,125 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "ProxyJam API",
+  "description": "API documentation for the ProxyJam proxy marketplace.",
+  "logo": {
+    "light": "/images/logo-light.svg",
+    "dark": "/images/logo-dark.svg"
+  },
+  "favicon": "/images/favicon.svg",
+  "colors": {
+    "primary": "#0066FF",
+    "light": "#3385FF",
+    "dark": "#0047B3"
+  },
+  "appearance": {
+    "default": "system",
+    "strict": false
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:support@ProxyJam.com"
+      }
+    ]
+  },
+  "api": {
+    "mdx": {
+      "server": "https://api.proxyjam.com/public/v1",
+      "auth": {
+        "method": "key",
+        "name": "X-API-Key"
+      }
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": [
+              "overview/introduction",
+              "overview/authentication"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "overview/idempotency",
+              "overview/errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Catalog",
+            "pages": [
+              "api/catalog/list-offers"
+            ]
+          },
+          {
+            "group": "Orders",
+            "pages": [
+              "api/orders/create-order",
+              "api/orders/create-guest-order",
+              "api/orders/list-orders",
+              "api/orders/get-order",
+              "api/orders/get-order-traffic-usage",
+              "api/orders/get-traffic-usage-summary"
+            ]
+          },
+          {
+            "group": "Proxy management",
+            "pages": [
+              "api/orders/proxy-auto-renew",
+              "api/orders/proxy-extend",
+              "api/orders/proxy-bandwidth",
+              "api/orders/proxy-whitelist",
+              "api/orders/proxy-sync",
+              "api/orders/proxy-change-protocol"
+            ]
+          },
+          {
+            "group": "Mobile rotating proxies",
+            "pages": [
+              "api/mobile/reset-proxy-ip",
+              "api/mobile/update-proxy-credentials",
+              "api/mobile/change-proxy-signature",
+              "api/mobile/update-proxy-tags",
+              "api/mobile/release-proxy",
+              "api/mobile/list-signatures"
+            ]
+          },
+          {
+            "group": "Wallet",
+            "pages": [
+              "api/wallet/balance",
+              "api/wallet/transactions",
+              "api/wallet/get-transaction"
+            ]
+          },
+          {
+            "group": "Webhooks",
+            "pages": [
+              "api/webhooks/get-webhooks",
+              "api/webhooks/create-webhook",
+              "api/webhooks/update-webhook",
+              "api/webhooks/delete-webhook",
+              "api/webhooks/send-test"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {}
+  }
+}

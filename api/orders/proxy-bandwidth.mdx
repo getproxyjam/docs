@@ -1,0 +1,62 @@
+---
+title: "Buy bandwidth"
+description: "Purchase additional traffic for a proxy."
+api: "POST /orders/{order_id}/bandwidth"
+---
+
+Adds bandwidth to the proxy at the provider level and deducts the cost from your wallet.
+
+<Warning>
+  This action is billed immediately from your wallet balance. Ensure you have sufficient funds before calling this endpoint.
+</Warning>
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Request body
+
+<ParamField body="bandwidth_gb" type="integer" required>
+  Additional traffic to purchase in GB. Min `1`, max `5000`.
+</ParamField>
+
+## Response
+
+Updated proxy object reflecting the new `bandwidth_total_gb`. Same shape as the `managed_proxy` object in [Get order](/api/orders/get-order).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/bandwidth" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"bandwidth_gb": 10}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.orders.buy_bandwidth(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+        gigabytes=10,
+    )
+    print("total bandwidth:", proxy.bandwidth_total_gb, "GB")
+```
+
+```json Response
+{
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "provider_proxy_id": "1836367",
+  "status": "active",
+  "expires_at": "2026-03-21T14:22:39Z",
+  "bandwidth_total_gb": 11.0,
+  "bandwidth_used_gb": 0.4
+}
+```
+
+</CodeGroup>

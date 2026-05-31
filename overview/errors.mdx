@@ -1,0 +1,63 @@
+---
+title: "Errors"
+description: "Standard error response format and common HTTP status codes."
+---
+
+ProxyJam uses standard HTTP status codes and returns a consistent error body.
+
+## Error response format
+
+```json
+{
+  "detail": "Human-readable description of the error."
+}
+```
+
+Some validation errors return a structured list of fields:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "email"],
+      "msg": "value is not a valid email address",
+      "type": "value_error.email"
+    }
+  ]
+}
+```
+
+## HTTP status codes
+
+| Code | Meaning |
+| --- | --- |
+| `200` | Success |
+| `201` | Resource created |
+| `400` | Bad request — invalid input or validation error |
+| `401` | Unauthorized — missing or expired token |
+| `403` | Forbidden — authenticated but not allowed |
+| `404` | Resource not found |
+| `409` | Conflict — duplicate or already exists |
+| `422` | Unprocessable entity — request body fails schema validation |
+| `429` | Too many requests — rate limit exceeded |
+| `500` | Internal server error |
+
+## Common errors
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    Your `access_token` is missing, expired, or malformed. Refresh it using `POST /users/refresh`.
+  </Accordion>
+  <Accordion title="403 Forbidden">
+    Your account exists but does not have permission to access this resource. This can happen if the resource belongs to another user.
+  </Accordion>
+  <Accordion title="409 Conflict">
+    Returned when you try to create a resource that already exists, such as registering with an email that is already in use.
+  </Accordion>
+  <Accordion title="422 Unprocessable entity">
+    The request body is valid JSON but fails field-level validation. Check the `detail` array for which fields are invalid.
+  </Accordion>
+  <Accordion title="429 Too many requests">
+    The API enforces a global rate limit of 100 requests per minute. Slow down and retry after a short delay.
+  </Accordion>
+</AccordionGroup>

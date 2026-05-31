@@ -1,0 +1,59 @@
+---
+title: "List payment providers"
+description: "Return available payment providers for wallet top-up."
+api: "GET /payments/providers"
+---
+
+Returns the list of payment providers currently available for depositing funds into your wallet. The list may vary depending on whether the user is authenticated and their region.
+
+## Response
+
+Array of provider objects.
+
+<ResponseField name="id" type="string">
+  Provider identifier. Use this when creating a payment intent.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the provider (e.g., `"CryptoCloud"`).
+</ResponseField>
+
+<ResponseField name="description" type="string">
+  Short description shown in the UI.
+</ResponseField>
+
+<ResponseField name="logo_url" type="string">
+  URL of the provider's logo.
+</ResponseField>
+
+<ResponseField name="min_amount" type="number">
+  Minimum deposit amount in USD.
+</ResponseField>
+
+<ResponseField name="max_amount" type="number">
+  Maximum deposit amount in USD. `null` means no limit.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl https://api.proxyjam.com/public/v1/payments/providers \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response
+[
+  {
+    "id": "cryptocloud",
+    "name": "CryptoCloud",
+    "description": "Pay with Bitcoin, USDT, Ethereum, and more",
+    "logo_url": "https://cdn.ProxyJam.com/providers/cryptocloud.svg",
+    "min_amount": 5.0,
+    "max_amount": null
+  }
+]
+```
+
+</CodeGroup>

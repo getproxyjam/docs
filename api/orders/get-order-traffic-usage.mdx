@@ -1,0 +1,90 @@
+---
+title: "Get order traffic usage"
+description: "Retrieve traffic usage chart data for one order."
+api: "GET /orders/{order_id}/traffic-usage"
+---
+
+Returns pre-aggregated traffic usage points for a single order and summary values for the selected period.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="period" type="string" default="last_7d">
+  One of: `last_24h`, `last_7d`, `last_30d`.
+</ParamField>
+
+## Response
+
+<ResponseField name="period" type="string">
+  Selected period preset.
+</ResponseField>
+
+<ResponseField name="from_at" type="string">
+  Inclusive UTC start timestamp of the selected window.
+</ResponseField>
+
+<ResponseField name="to_at" type="string">
+  Exclusive UTC end timestamp of the selected window.
+</ResponseField>
+
+<ResponseField name="summary" type="object">
+  Aggregated values:
+  - `total_used_gb`
+  - `avg_per_period_gb`
+</ResponseField>
+
+<ResponseField name="points" type="array">
+  Chart points, each with:
+  - `timestamp`
+  - `used_delta_gb`
+  - `used_total_gb`
+  - `total_limit_gb`
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/traffic-usage?period=last_7d" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    usage = client.orders.traffic_usage(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+    )
+    print(usage.summary.total_used_gb, "GB used")
+    for point in usage.points:
+        print(point.timestamp, point.used_delta_gb)
+```
+
+```json Response
+{
+  "period": "last_7d",
+  "from_at": "2026-04-05T00:00:00Z",
+  "to_at": "2026-04-12T00:00:00Z",
+  "summary": {
+    "total_used_gb": 6.2,
+    "avg_per_period_gb": 0.885714
+  },
+  "points": [
+    {
+      "timestamp": "2026-04-05T00:00:00Z",
+      "used_delta_gb": 0.7,
+      "used_total_gb": 2.1,
+      "total_limit_gb": 10.0
+    }
+  ]
+}
+```
+
+</CodeGroup>

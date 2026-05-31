@@ -1,0 +1,134 @@
+---
+title: "List proxy offers"
+description: "Retrieve all available proxy offers grouped by type."
+api: "GET /catalog"
+---
+
+Returns the full proxy catalog grouped by `kind`. Use query parameters to filter the results.
+
+## Query parameters
+
+<ParamField query="kind" type="string">
+  Filter by proxy type. One of: `datacenter`, `residential`, `mobile`.
+</ParamField>
+
+<ParamField query="country" type="string">
+  Filter by ISO 3166-1 alpha-2 country code (e.g., `US`, `GB`, `DE`).
+</ParamField>
+
+<ParamField query="is_available" type="boolean">
+  When `true`, returns only offers currently in stock.
+</ParamField>
+
+## Response
+
+<ResponseField name="kinds" type="array">
+  List of offer groups, one per proxy kind.
+
+  <Expandable title="ProxyOffersByKind">
+    <ResponseField name="kind" type="string">
+      The proxy type: `datacenter`, `residential`, or `mobile`.
+    </ResponseField>
+    <ResponseField name="offers" type="array">
+      List of offers for this kind.
+
+      <Expandable title="ProxyOfferResponse">
+        <ResponseField name="id" type="integer">
+          Unique offer ID. Use this when placing an order.
+        </ResponseField>
+        <ResponseField name="kind" type="string">
+          Proxy type.
+        </ResponseField>
+        <ResponseField name="mode" type="string">
+          Proxy mode as defined by the provider.
+        </ResponseField>
+        <ResponseField name="ip_version" type="string">
+          IP version: `IPv4` or `IPv6`.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Display name of the offer.
+        </ResponseField>
+        <ResponseField name="description" type="string">
+          Optional description.
+        </ResponseField>
+        <ResponseField name="country_code" type="string">
+          ISO country code of the proxy location.
+        </ResponseField>
+        <ResponseField name="is_available" type="boolean">
+          Whether the offer is currently purchasable.
+        </ResponseField>
+        <ResponseField name="price_from_usd" type="number">
+          Starting price in USD across all options.
+        </ResponseField>
+        <ResponseField name="currency" type="string">
+          Always `USD`.
+        </ResponseField>
+        <ResponseField name="options" type="array">
+          Pricing options. See [Proxy types](/overview/proxy-types) for field details.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of offers across all kinds.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/catalog?kind=residential&country=US&is_available=true"
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+# Catalog is public; the SDK forwards X-API-Key but no auth is required.
+with ProxyJamClient.from_env() as client:
+    catalog = client.catalog.list(
+        kind="residential",
+        country="US",
+        is_available=True,
+    )
+    for group in catalog.kinds:
+        for offer in group.offers:
+            print(offer.id, offer.name, offer.price_from_usd, offer.currency)
+```
+
+```json Response
+{
+  "kinds": [
+    {
+      "kind": "residential",
+      "offers": [
+        {
+          "id": 42,
+          "kind": "residential",
+          "mode": "rotating",
+          "ip_version": "IPv4",
+          "name": "US Residential Rotating",
+          "description": "High-quality US residential proxies",
+          "country_code": "US",
+          "is_available": true,
+          "price_from_usd": 3.5,
+          "currency": "USD",
+          "options": [
+            {
+              "price": 3.5,
+              "period_days": 30,
+              "period_name": "30 days",
+              "period_months": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "total": 1
+}
+```
+
+</CodeGroup>

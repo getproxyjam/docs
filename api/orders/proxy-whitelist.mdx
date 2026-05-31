@@ -1,0 +1,59 @@
+---
+title: "Update IP whitelist"
+description: "Replace the list of whitelisted IPs for a proxy."
+api: "PUT /orders/{order_id}/whitelist"
+---
+
+Replaces the IP whitelist at the provider level. Proxies using IP-whitelist authentication accept connections only from addresses on this list.
+
+Sending an empty array disables IP-whitelist authentication and falls back to username/password auth.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Request body
+
+<ParamField body="whitelisted_ips" type="array" required>
+  List of IPv4 addresses to allow. Send an empty array to clear the whitelist.
+</ParamField>
+
+## Response
+
+Updated proxy object with the new `whitelisted_ips`. Same shape as the `managed_proxy` object in [Get order](/api/orders/get-order).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X PUT "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/whitelist" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"whitelisted_ips": ["203.0.113.10", "203.0.113.11"]}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.proxies.set_whitelist(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+        ["203.0.113.10", "203.0.113.11"],
+    )
+    print(proxy.whitelisted_ips)
+```
+
+```json Response
+{
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "provider_proxy_id": "1836367",
+  "status": "active",
+  "expires_at": "2026-03-21T14:22:39Z",
+  "whitelisted_ips": ["203.0.113.10", "203.0.113.11"]
+}
+```
+
+</CodeGroup>

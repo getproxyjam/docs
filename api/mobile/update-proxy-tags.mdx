@@ -1,0 +1,65 @@
+---
+title: "Update proxy tags"
+description: "Replace the tag list on a mobile rotating proxy."
+api: "POST /orders/{order_id}/tags"
+---
+
+Replaces the proxy's tag list. Tags are free-form strings for organising and filtering proxies in your own tooling; they are not interpreted by the API.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order backing the mobile rotating proxy.
+</ParamField>
+
+## Request body
+
+<ParamField body="tags" type="array" required>
+  Replacement tag list. Send an empty array to clear all tags.
+</ParamField>
+
+## Response
+
+Live snapshot of the mobile rotating proxy with the updated tag list. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/tags" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"tags": ["scrape", "prod"]}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.proxies.set_tags(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+        ["scrape", "prod"],
+    )
+    print(proxy.tags)
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "active",
+  "auto_renew": true,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.example.com",
+  "port": 24534,
+  "username": "pj_abc",
+  "password": "<proxy-password>",
+  "current_ip": "203.0.113.99",
+  "signature": "android",
+  "tags": ["scrape", "prod"],
+  "whitelisted_ips": []
+}
+```
+
+</CodeGroup>

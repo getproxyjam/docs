@@ -1,0 +1,65 @@
+---
+title: "Get traffic usage summary"
+description: "Retrieve aggregated traffic usage for all user proxies."
+api: "GET /orders/traffic-usage/summary"
+---
+
+Returns traffic usage chart data and summary metrics aggregated across all proxies of the authenticated user.
+
+## Query parameters
+
+<ParamField query="period" type="string" default="last_7d">
+  One of: `last_24h`, `last_7d`, `last_30d`.
+</ParamField>
+
+<ParamField query="proxy_type" type="string">
+  Optional proxy type filter: `residential`, `datacenter`, `mobile`.
+</ParamField>
+
+<ParamField query="proxy_status" type="string">
+  Optional proxy status filter: `active`, `expiring`, `expired`.
+</ParamField>
+
+## Response
+
+Same shape as [Get order traffic usage](/api/orders/get-order-traffic-usage#response).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/orders/traffic-usage/summary?period=last_30d&proxy_type=residential&proxy_status=active" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    summary = client.orders.traffic_summary()
+    print(summary.summary.total_used_gb, "GB across all proxies")
+    print(summary.summary.avg_per_period_gb, "GB average per period")
+```
+
+```json Response
+{
+  "period": "last_30d",
+  "from_at": "2026-03-13T00:00:00Z",
+  "to_at": "2026-04-12T00:00:00Z",
+  "summary": {
+    "total_used_gb": 41.8,
+    "avg_per_period_gb": 1.393333
+  },
+  "points": [
+    {
+      "timestamp": "2026-03-13T00:00:00Z",
+      "used_delta_gb": 1.2,
+      "used_total_gb": 11.2,
+      "total_limit_gb": 50.0
+    }
+  ]
+}
+```
+
+</CodeGroup>
