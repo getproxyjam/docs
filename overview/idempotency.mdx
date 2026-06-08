@@ -23,18 +23,22 @@ Include a unique `idempotency_key` (UUID) in your request body. If you send the 
 | --- | --- |
 | `POST /orders` | `idempotency_key` in request body |
 | `POST /orders/guest` | `idempotency_key` in request body |
+| `POST /orders/{order_id}/extend` | `Idempotency-Key` header (required for mobile rotating; optional for static proxies) |
+| `POST /payments/payment-intents` | `Idempotency-Key` header (required) |
 
-## Payment intents
+## Header-based idempotency
 
-For `POST /payments/payment-intents`, pass the idempotency key as an HTTP header:
+Some endpoints take the idempotency key as the HTTP `Idempotency-Key` header rather than a body field:
 
 ```
 Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 ```
 
 <Warning>
-  The `Idempotency-Key` header is **required** for payment intents. The request will be rejected without it.
+  The `Idempotency-Key` header is **required** for `POST /payments/payment-intents` and for mobile-rotating calls to `POST /orders/{order_id}/extend`. Requests will be rejected without it.
 </Warning>
+
+A replay with the same key returns the cached response. A different request body sent with the same key returns `409 ConflictError`.
 
 ## Best practices
 

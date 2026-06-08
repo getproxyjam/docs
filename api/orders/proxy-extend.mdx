@@ -1,13 +1,17 @@
 ---
 title: "Extend proxy"
-description: "Extend the rental period of a proxy by one or more months."
+description: "Extend the rental period of a static proxy by months, or re-bill a mobile rotating proxy for another tarification cycle."
 api: "POST /orders/{order_id}/extend"
 ---
 
-Charges your wallet and extends the proxy subscription at the provider level.
+Charges your wallet and extends the proxy subscription at the provider level. The endpoint routes by the order's proxy type: static proxies (residential, datacenter, ISP) are extended by whole months; mobile rotating proxies are re-billed for one cycle of the chosen tarification.
 
 <Warning>
   This action is billed immediately from your wallet balance. Ensure you have sufficient funds before calling this endpoint.
+</Warning>
+
+<Warning>
+  **Mobile rotating proxies:** extending re-applies the selected tarification at the provider, which **resets** any remaining time and traffic on the current cycle. It does not append. If the current cycle still has substantial time or traffic left, you may forfeit it. Extend close to expiry.
 </Warning>
 
 ## Path parameters
@@ -16,17 +20,37 @@ Charges your wallet and extends the proxy subscription at the provider level.
   UUID of the order.
 </ParamField>
 
+## Headers
+
+<ParamField header="Idempotency-Key" type="string">
+  Replay-safe key. **Required for mobile rotating extends.** Optional for static-proxy extends. The same key returns the cached response without re-billing; a different body with the same key returns `409 ConflictError`.
+</ParamField>
+
 ## Request body
 
-<ParamField body="months" type="integer" required>
-  Number of months to extend. Min `1`, max `24`.
+<ParamField body="months" type="integer">
+  Number of months to extend. Min `1`, max `24`. **Required for static proxies (residential, datacenter, ISP).**
 </ParamField>
+
+<ParamField body="tarification_index" type="integer">
+  Zero-based index into the offer's `pricing_options`. **Required for mobile rotating proxies.**
+</ParamField>
+
+<Note>
+  Provide exactly one of `months` or `tarification_index`. Sending both, or neither, returns `422 ValidationError`. Sending the wrong field for the order's proxy type returns `400` — the message identifies which field the proxy type expects.
+</Note>
 
 ## Response
 
-Updated proxy object with the new `expires_at`. Same shape as the `managed_proxy` object in [Get order](/api/orders/get-order).
+For static proxies the response is the updated proxy object with the new `expires_at` — same shape as the `managed_proxy` object in [Get order](/api/orders/get-order). For mobile rotating proxies the response matches the mobile shape in Get order (the `type: "mobile"` variant) — see the example below for the full superset.
 
-## Example
+Both shapes include an extend-specific field:
+
+<ResponseField name="previous_expires_at" type="string | null">
+  The `expires_at` value **before** this extend call. Only populated on extend responses; `null` everywhere else. Lets clients render a before/after diff.
+</ResponseField>
+
+## Example — static proxy
 
 <CodeGroup>
 
@@ -57,8 +81,78 @@ with ProxyJamClient.from_env() as client:
   "auto_renew": true,
   "whitelisted_ips": [],
   "bandwidth_total_gb": 1.0,
-  "bandwidth_used_gb": null
+  "bandwidth_used_gb": null,
+  "previous_expires_at": "2026-03-21T14:22:39Z"
 }
 ```
 
 </CodeGroup>
+
+## Example — mobile rotating proxy
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/f603a37e-ea14-41e8-9131-a0bb56223b6d/extend" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Idempotency-Key: 0193b3e7-5d3a-7c11-8a2c-3f9e1b6c4d8e" \
+  -H "Content-Type: application/json" \
+  -d '{"tarification_index": 0}'
+```
+
+```python Python
+import uuid
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient.from_env() as client:
+    proxy = client.orders.extend(
+        "f603a37e-ea14-41e8-9131-a0bb56223b6d",
+        tarification_index=0,
+        idempotency_key=str(uuid.uuid4()),
+    )
+    print("new expiry:", proxy.expires_at)
+    print("previous:   ", proxy.previous_expires_at)
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "f603a37e-ea14-41e8-9131-a0bb56223b6d",
+  "status": "active",
+  "auto_renew": false,
+  "expires_at": "2026-06-07T12:34:05.761517Z",
+  "host": "gw.proxyjam.com",
+  "port": 29156,
+  "username": "pj_f603a37eea14",
+  "password": "SLe8T480-aK7JWonM5PewWOz",
+  "current_ip": "24.114.39.153",
+  "signature": "No change",
+  "tags": [],
+  "whitelisted_ips": [],
+  "order_status": "provisioned",
+  "proxy_type": "mobile",
+  "ip_version": "IPv4",
+  "protocol": "HTTP",
+  "country": "CA",
+  "city": null,
+  "isp": "Rogers",
+  "period_days": 1,
+  "bandwidth_gb": null,
+  "quantity": 1,
+  "total_usd": 1.5,
+  "total_amount": "1.50",
+  "currency": "USD",
+  "promo_code_id": null,
+  "discount_usd": null,
+  "created_at": "2026-06-07T06:33:01.184801Z",
+  "updated_at": "2026-06-07T11:34:47.671495Z",
+  "payment_intent_id": null,
+  "previous_expires_at": "2026-06-07T11:34:05.761517Z"
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Operators can enable the `orders.mobile.extend.too_early_guard` feature flag to block mobile extends when more than 30 % of the current cycle is still remaining. The flag is off by default; when on, the API returns a `400` with a message asking the caller to extend closer to expiry.
+</Note>

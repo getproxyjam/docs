@@ -21,11 +21,20 @@ Same shape as [Create order response](/api/orders/create-order#response).
 </Note>
 
 <Note id="response-mobile">
-  **Mobile rotating orders** return a different shape — a live snapshot
-  fetched from the upstream provider on each request. The response carries
-  `"type": "mobile"` and mobile-specific fields (`signature`, `tags`,
-  `current_ip`). The Python SDK dispatches automatically: `client.orders.get()`
-  returns either an `Order` or a `MobileProxy` based on the response shape.
+  **Mobile rotating orders** return a flat live-snapshot shape, fetched
+  from the upstream provider on each request. The response carries
+  `"type": "mobile"` and a **superset** of fields: the live state
+  (`signature`, `tags`, `current_ip`, `status`) plus durable order
+  metadata (`country`, `city`, `isp`, `period_days`, `total_usd`,
+  `created_at`, …).
+
+  Two fields look similar but mean different things:
+  `status` is the **live proxy state** (e.g. `"active"`) reported by the
+  provider on this request; `order_status` is the **order lifecycle**
+  value (e.g. `"provisioned"`).
+
+  The Python SDK dispatches automatically: `client.orders.get()` returns
+  either an `Order` or a `MobileProxy` based on the response shape.
 </Note>
 
 ## Example
@@ -84,14 +93,33 @@ with ProxyJamClient.from_env() as client:
   "status": "active",
   "auto_renew": true,
   "expires_at": "2026-12-31T23:59:59Z",
-  "host": "gw.example.com",
+  "host": "gw.proxyjam.com",
   "port": 24534,
   "username": "pj_abc",
   "password": "<proxy-password>",
   "current_ip": "203.0.113.10",
   "signature": "android",
   "tags": ["scrape"],
-  "whitelisted_ips": []
+  "whitelisted_ips": [],
+  "order_status": "provisioned",
+  "proxy_type": "mobile",
+  "ip_version": "IPv4",
+  "protocol": "HTTP",
+  "country": "US",
+  "city": null,
+  "isp": "T-Mobile",
+  "period_days": 1,
+  "bandwidth_gb": null,
+  "quantity": 1,
+  "total_usd": 1.5,
+  "total_amount": "1.50",
+  "currency": "USD",
+  "promo_code_id": null,
+  "discount_usd": null,
+  "created_at": "2026-12-30T23:59:59Z",
+  "updated_at": "2026-12-31T00:15:01Z",
+  "payment_intent_id": null,
+  "previous_expires_at": null
 }
 ```
 
