@@ -64,8 +64,8 @@ curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-
 ```python Python
 from proxyjam import ProxyJamClient
 
-with ProxyJamClient.from_env() as client:
-    proxy = client.orders.extend(
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    proxy = proxyjam.orders.extend(
         "997b4450-e7ae-4ad9-8a25-996e582049c9",
         months=1,
     )
@@ -95,7 +95,7 @@ with ProxyJamClient.from_env() as client:
 ```bash cURL
 curl -X POST "https://api.proxyjam.com/public/v1/orders/f603a37e-ea14-41e8-9131-a0bb56223b6d/extend" \
   -H "X-API-Key: pj_AbCdEf..." \
-  -H "Idempotency-Key: 0193b3e7-5d3a-7c11-8a2c-3f9e1b6c4d8e" \
+  -H "Idempotency-Key: <unique-uuid>" \
   -H "Content-Type: application/json" \
   -d '{"tarification_index": 0}'
 ```
@@ -104,8 +104,8 @@ curl -X POST "https://api.proxyjam.com/public/v1/orders/f603a37e-ea14-41e8-9131-
 import uuid
 from proxyjam import ProxyJamClient
 
-with ProxyJamClient.from_env() as client:
-    proxy = client.orders.extend(
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    proxy = proxyjam.orders.extend(
         "f603a37e-ea14-41e8-9131-a0bb56223b6d",
         tarification_index=0,
         idempotency_key=str(uuid.uuid4()),
@@ -124,7 +124,7 @@ with ProxyJamClient.from_env() as client:
   "host": "gw.proxyjam.com",
   "port": 29156,
   "username": "pj_f603a37eea14",
-  "password": "SLe8T480-aK7JWonM5PewWOz",
+  "password": "<proxy-password>",
   "current_ip": "24.114.39.153",
   "signature": "No change",
   "tags": [],

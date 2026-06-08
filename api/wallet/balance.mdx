@@ -34,8 +34,8 @@ from proxyjam import ProxyJamClient
 
 # The Python SDK calls the multi-currency endpoint at
 # /wallets/{currency}/balance under the hood.
-with ProxyJamClient.from_env() as client:
-    balance = client.wallets.get_balance("USD")
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    balance = proxyjam.wallets.get_balance("USD")
     print(balance.balance, balance.currency)
 ```
 

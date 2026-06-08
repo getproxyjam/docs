@@ -58,8 +58,8 @@ curl "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e5820
 ```python Python
 from proxyjam import ProxyJamClient
 
-with ProxyJamClient.from_env() as client:
-    usage = client.orders.traffic_usage(
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    usage = proxyjam.orders.traffic_usage(
         "997b4450-e7ae-4ad9-8a25-996e582049c9",
     )
     print(usage.summary.total_used_gb, "GB used")

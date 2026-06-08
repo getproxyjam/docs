@@ -1,0 +1,88 @@
+---
+title: "Python SDK"
+description: "Install the ProxyJam Python client and make your first API call."
+---
+
+The official Python client wraps the ProxyJam API with typed resources for catalog browsing, wallets, orders, and proxy management.
+
+## Install
+
+```bash
+pip install proxyjam
+```
+
+Requires Python 3.13+.
+
+## Authentication
+
+Pass your API key when constructing the client. Keys are sent in the `X-API-Key` header on every request. See the [Authentication guide](/overview/authentication) for how to generate and manage keys.
+
+```python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    ...
+```
+
+## Quick start
+
+```python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    # Browse the catalog
+    catalog = proxyjam.catalog.list()
+
+    # Check wallet balances
+    balances = proxyjam.wallets.list()
+    usd = proxyjam.wallets.get_balance("USD")
+
+    # List your orders
+    orders = proxyjam.orders.list()
+```
+
+## Async
+
+The async client mirrors the sync one and runs on `asyncio`.
+
+```python
+import asyncio
+from proxyjam import AsyncProxyJamClient
+
+
+async def main() -> None:
+    async with AsyncProxyJamClient(api_key="pj_live_...") as proxyjam:
+        catalog = await proxyjam.catalog.list()
+        print(catalog)
+
+
+asyncio.run(main())
+```
+
+## Errors
+
+All API failures raise subclasses of `ProxyJamError`. Use the specific subclasses to react to known conditions.
+
+| Class | When it's raised |
+| --- | --- |
+| `AuthenticationError` | Missing or invalid `X-API-Key` |
+| `PermissionError` | The key authenticates but lacks the required scope |
+| `NotFoundError` | The target resource does not exist |
+| `ConflictError` | Idempotency-key replay with a different body, or other state conflict |
+| `RateLimitError` | The caller exceeded the request rate limit |
+| `ValidationError` | The request body or query failed schema validation |
+| `ServerError` | 5xx response from the API |
+| `ProxyJamConnectionError` | TCP / DNS / TLS failure before a response was received |
+| `ProxyJamTimeoutError` | The request did not complete within the configured timeout |
+
+Example:
+
+```python
+from proxyjam import ProxyJamClient, NotFoundError
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    try:
+        order = proxyjam.orders.get("missing-order-id")
+    except NotFoundError:
+        print("order not found")
+```

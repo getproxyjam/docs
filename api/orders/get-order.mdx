@@ -33,7 +33,7 @@ Same shape as [Create order response](/api/orders/create-order#response).
   provider on this request; `order_status` is the **order lifecycle**
   value (e.g. `"provisioned"`).
 
-  The Python SDK dispatches automatically: `client.orders.get()` returns
+  The Python SDK dispatches automatically: `proxyjam.orders.get()` returns
   either an `Order` or a `MobileProxy` based on the response shape.
 </Note>
 
@@ -49,8 +49,8 @@ curl https://api.proxyjam.com/public/v1/orders/order-uuid-here \
 ```python Python
 from proxyjam import ProxyJamClient, MobileProxy
 
-with ProxyJamClient.from_env() as client:
-    result = client.orders.get("order-uuid-here")
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    result = proxyjam.orders.get("order-uuid-here")
     if isinstance(result, MobileProxy):
         print(result.signature, result.current_ip)
     else:

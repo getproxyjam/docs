@@ -133,8 +133,8 @@ curl -X POST https://api.proxyjam.com/public/v1/orders \
 ```python Python
 from proxyjam import ProxyJamClient
 
-with ProxyJamClient.from_env() as client:
-    orders = client.orders.create(
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    orders = proxyjam.orders.create(
         offer_id=42,
         quantity=2,
         period_days=30,

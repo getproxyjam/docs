@@ -28,8 +28,8 @@ curl https://api.proxyjam.com/public/v1/wallet/transactions/txn-uuid-1 \
 ```python Python
 from proxyjam import ProxyJamClient
 
-with ProxyJamClient.from_env() as client:
-    tx = client.wallets.get_transaction("txn-uuid-1")
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    tx = proxyjam.wallets.get_transaction("txn-uuid-1")
     print(tx.transaction_type, tx.amount_as_decimal(), tx.status)
 ```
 

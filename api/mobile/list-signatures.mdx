@@ -23,8 +23,8 @@ curl https://api.proxyjam.com/public/v1/orders/mobile-signatures
 ```python Python
 from proxyjam import ProxyJamClient
 
-with ProxyJamClient.from_env() as client:
-    signatures = client.proxies.signatures()
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    signatures = proxyjam.proxies.signatures()
     print(signatures)
 ```
 

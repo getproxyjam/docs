@@ -43,7 +43,8 @@
             "group": "Getting started",
             "pages": [
               "overview/introduction",
-              "overview/authentication"
+              "overview/authentication",
+              "overview/python-sdk"
             ]
           },
           {
@@ -59,6 +60,13 @@
         "tab": "API Reference",
         "groups": [
           {
+            "group": "Account",
+            "pages": [
+              "api/auth/me",
+              "api/account/list-wallets"
+            ]
+          },
+          {
             "group": "Catalog",
             "pages": [
               "api/catalog/list-offers"
@@ -68,7 +76,6 @@
             "group": "Orders",
             "pages": [
               "api/orders/create-order",
-              "api/orders/create-guest-order",
               "api/orders/list-orders",
               "api/orders/get-order",
               "api/orders/get-order-traffic-usage",
@@ -103,16 +110,6 @@
               "api/wallet/balance",
               "api/wallet/transactions",
               "api/wallet/get-transaction"
-            ]
-          },
-          {
-            "group": "Webhooks",
-            "pages": [
-              "api/webhooks/get-webhooks",
-              "api/webhooks/create-webhook",
-              "api/webhooks/update-webhook",
-              "api/webhooks/delete-webhook",
-              "api/webhooks/send-test"
             ]
           }
         ]

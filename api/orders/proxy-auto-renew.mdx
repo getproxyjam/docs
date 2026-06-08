@@ -25,7 +25,7 @@ Updated proxy object. Residential orders return the standard `managed_proxy` sha
 <Note>
   **Mobile rotating orders** return a live snapshot instead — shape with
   `"type": "mobile"` and mobile-specific fields (`signature`, `tags`,
-  `current_ip`). The Python SDK dispatches automatically: `client.orders.set_auto_renew()`
+  `current_ip`). The Python SDK dispatches automatically: `proxyjam.orders.set_auto_renew()`
   returns either a `Proxy` or a `MobileProxy` based on the response shape.
 </Note>
 
@@ -43,8 +43,8 @@ curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-
 ```python Python
 from proxyjam import ProxyJamClient, MobileProxy
 
-with ProxyJamClient.from_env() as client:
-    result = client.orders.set_auto_renew(
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    result = proxyjam.orders.set_auto_renew(
         "997b4450-e7ae-4ad9-8a25-996e582049c9",
         False,
     )
