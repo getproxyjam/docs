@@ -43,6 +43,7 @@
             "group": "Getting started",
             "pages": [
               "overview/introduction",
+              "overview/quickstart",
               "overview/authentication",
               "overview/python-sdk"
             ]
@@ -50,6 +51,8 @@
           {
             "group": "Concepts",
             "pages": [
+              "overview/proxy-types",
+              "overview/payment-methods",
               "overview/idempotency",
               "overview/errors"
             ]
@@ -110,6 +113,12 @@
               "api/wallet/balance",
               "api/wallet/transactions",
               "api/wallet/get-transaction"
+            ]
+          },
+          {
+            "group": "MCP",
+            "pages": [
+              "api/mcp"
             ]
           }
         ]

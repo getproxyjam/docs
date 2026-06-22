@@ -35,9 +35,8 @@ curl -X POST https://api.proxyjam.com/public/v1/api-keys \
 ### Claude Code
 
 ```bash
-claude mcp add proxyjam \
-  --transport http \
-  --url https://mcp.proxyjam.com/mcp \
+claude mcp add --transport http proxyjam \
+  https://mcp.proxyjam.com/mcp \
   --header "X-API-Key: pj_..."
 ```
 
@@ -126,9 +125,9 @@ List available proxy offers, optionally filtered.
 | `response_format` | `csv` / `json` | `csv` | CSV is ~50% cheaper in LLM tokens. |
 
 Returns a flat table — one row per offer, with `kind`, `id`, `name`,
-`country_code`, `mode`, `currency`, `price_from_usd`, and `options`
-(JSON-encoded list of tariff variants). Use `id` as `offer_id` in
-`create_proxy_order`.
+`country_code`, `mode`, `ip_version`, `is_available`, `currency`,
+`price_from_usd`, and `options` (JSON-encoded list of tariff variants).
+Use `id` as `offer_id` in `create_proxy_order`.
 
 ### Orders
 
