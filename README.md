@@ -1,33 +1,25 @@
-# ProxyJam API Docs
+<p align="center">
+  <img src="./images/readme/hero.svg" width="100%" alt="ProxyJam API Docs — the MDX and docs.json source of docs.proxyjam.com, built with Mintlify. Edit locally, merge, and the site deploys itself.">
+</p>
+
+<p align="center">
+  <a href="https://docs.proxyjam.com"><img src="https://img.shields.io/badge/docs-docs.proxyjam.com-0066FF.svg" alt="Docs"></a>
+  <a href="https://github.com/getproxyjam/docs/actions/workflows/ci.yml"><img src="https://github.com/getproxyjam/docs/actions/workflows/ci.yml/badge.svg" alt="Checks"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+</p>
 
 Source for the [ProxyJam API documentation](https://docs.proxyjam.com), built with
-[Mintlify](https://mintlify.com).
-
-[![Docs](https://img.shields.io/badge/docs-docs.proxyjam.com-0066FF.svg)](https://docs.proxyjam.com)
-[![Checks](https://github.com/getproxyjam/docs/actions/workflows/ci.yml/badge.svg)](https://github.com/getproxyjam/docs/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-## Contents
-
-- [Prerequisites](#prerequisites)
-- [Local development](#local-development)
-- [Project structure](#project-structure)
-- [Editing and adding pages](#editing-and-adding-pages)
-- [Validating your changes](#validating-your-changes)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [Security](#security)
-- [License](#license)
-
-## Prerequisites
-
-- [Node.js](https://nodejs.org) **v20.17.0+**
-- The Mintlify CLI:
-  ```bash
-  npm i -g mint
-  ```
+[Mintlify](https://mintlify.com). Every page is an `.mdx` file; `docs.json` defines the
+navigation tree, theme, and shared API settings. Changes merged to `main` deploy to the
+live site automatically.
 
 ## Local development
+
+You need [Node.js](https://nodejs.org) **v20.17.0+** and the Mintlify CLI:
+
+```bash
+npm i -g mint
+```
 
 Run a live preview from the repository root (where `docs.json` lives):
 
