@@ -15,7 +15,11 @@ Each proxy offer has a `kind` field that describes the underlying network type. 
 
 ## Options per kind
 
-Pricing and duration options differ by proxy type.
+Every offer sells through its `options` array: pick an option via
+`tarification_index` when creating an order, and you are charged that
+option's full-period price (times `quantity`). Prices render in the
+requested catalog `currency` (`USD` or `STAR`) — the shown price is
+exactly what checkout charges.
 
 ### Residential options
 
@@ -23,10 +27,10 @@ Each offer includes a list of `options`, where each option has:
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `price` | `float` | Price in USD |
+| `price` | `float` | Price in the requested catalog currency |
 | `period_days` | `int` | Rental period |
 | `period_name` | `string` | Human-readable period label (e.g., `"30 days"`) |
-| `period_months` | `int \| null` | Period in months if applicable |
+| `tarification_index` | `int \| null` | Selector to pass when creating an order |
 
 ### Mobile options
 
@@ -34,13 +38,12 @@ Mobile options additionally include traffic-based billing:
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `price` | `float` | Price in USD |
+| `price` | `float` | Price in the requested catalog currency |
 | `traffic_mb` | `int \| null` | Included traffic in MB |
 | `period_days` | `int` | Rental period |
 | `period_name` | `string` | Human-readable period label |
 | `traffic_name` | `string` | Traffic label (e.g., `"5 GB"`) |
-| `period_seconds` | `int` | Period expressed in seconds |
-| `tarification_index` | `int` | Provider-internal tariff index |
+| `tarification_index` | `int` | Selector to pass when creating an order (required for mobile rotating) |
 
 ## Protocols and IP versions
 

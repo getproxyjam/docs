@@ -51,15 +51,20 @@ Use `"payment_method": "wallet"` to deduct from your wallet balance instantly, o
 </ParamField>
 
 <ParamField body="period_days" type="integer" default="30">
-  Rental period in days. For offers that require a `tarification_index`, must
-  match the chosen option's `period_days` exactly.
+  Rental period in days — a legacy alternative to `tarification_index`. It
+  must exactly match one of the offer's `options` periods (`30`, `60`, …,
+  `360` for residential/datacenter); the server resolves it to that option
+  and returns `422` when no option matches. When `tarification_index` is
+  sent, `period_days` (if present) must match the chosen option's
+  `period_days` exactly.
 </ParamField>
 
 <ParamField body="tarification_index" type="integer">
-  Index into the offer's `options` array. Required for mobile rotating
-  offers, which sell only pre-registered tariff triples; pass the index of
-  the option the user picked. Ignored for other offers and rejected with
-  `422` if supplied for them.
+  Index into the offer's `options` array — the primary way to pick a
+  price/period for **every** offer kind. The order is charged the chosen
+  option's price for its full period (multiplied by `quantity`). Required
+  for mobile rotating offers, which sell only pre-registered tariff
+  triples.
 </ParamField>
 
 <ParamField body="bandwidth_gb" type="integer">

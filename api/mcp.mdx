@@ -125,9 +125,10 @@ List available proxy offers, optionally filtered.
 | `response_format` | `csv` / `json` | `csv` | CSV is ~50% cheaper in LLM tokens. |
 
 Returns a flat table — one row per offer, with `kind`, `id`, `name`,
-`country_code`, `mode`, `ip_version`, `is_available`, `currency`,
-`price_from_usd`, and `options` (JSON-encoded list of tariff variants).
-Use `id` as `offer_id` in `create_proxy_order`.
+`country_code`, `mode`, `ip_version`, `is_available`, `currency`, and
+`options` (JSON-encoded list of tariff variants; each variant carries a
+`price` in the row's `currency`). Use `id` as `offer_id` in
+`create_proxy_order`.
 
 ### Orders
 
@@ -179,7 +180,7 @@ Three calls — discover, preview, confirm.
 ```python
 # 1. Discover available offers
 offers = await client.call_tool("list_offers", {"kind": "residential"})
-# CSV with kind, id, name, country_code, price_from_usd, …
+# CSV with kind, id, name, country_code, currency, options, …
 
 # 2. Preview a purchase (no charge happens)
 preview = await client.call_tool("create_proxy_order", {

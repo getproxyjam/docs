@@ -33,7 +33,14 @@ Charges your wallet and extends the proxy subscription at the provider level. Th
 </ParamField>
 
 <ParamField body="tarification_index" type="integer">
-  Zero-based index into the offer's `pricing_options`. **Required for mobile rotating proxies.**
+  Zero-based index into the offer's `options` array. **Required for mobile rotating proxies.**
+</ParamField>
+
+<ParamField body="payment_currency" type="string" default="USD">
+  Payment currency for the extension: `USD` (default) or `STAR`. `STAR` is
+  supported for mobile rotating extends only and charges the chosen
+  option's Stars price — the same value the catalog shows under
+  `currency=STAR`.
 </ParamField>
 
 <Note>

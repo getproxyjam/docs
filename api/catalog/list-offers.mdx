@@ -20,6 +20,11 @@ Returns the full proxy catalog grouped by `kind`. Use query parameters to filter
   When `true`, returns only offers currently in stock.
 </ParamField>
 
+<ParamField query="currency" type="string" default="USD">
+  Price currency to render: `USD` (default) or `STAR` (Telegram Stars). Prices are
+  returned only in the selected currency; the other currency's fields are omitted.
+</ParamField>
+
 ## Response
 
 <ResponseField name="kinds" type="array">
@@ -48,23 +53,22 @@ Returns the full proxy catalog grouped by `kind`. Use query parameters to filter
         <ResponseField name="name" type="string">
           Display name of the offer.
         </ResponseField>
-        <ResponseField name="description" type="string">
-          Optional description.
-        </ResponseField>
         <ResponseField name="country_code" type="string">
           ISO country code of the proxy location.
         </ResponseField>
         <ResponseField name="is_available" type="boolean">
           Whether the offer is currently purchasable.
         </ResponseField>
-        <ResponseField name="price_from_usd" type="number">
-          Starting price in USD across all options.
-        </ResponseField>
         <ResponseField name="currency" type="string">
-          Always `USD`.
+          The currency the option prices are in: `USD` or `STAR` (echoes the
+          `currency` query parameter).
         </ResponseField>
         <ResponseField name="options" type="array">
-          Pricing options. See [Proxy types](/overview/proxy-types) for field details.
+          Pricing options — the units you actually purchase. Each carries a
+          `price` in the response `currency` (`null` when not priced in it)
+          and a `tarification_index` to pass when creating an order; any
+          option can be paid at the shown price in either currency. See
+          [Proxy types](/overview/proxy-types) for the other fields.
         </ResponseField>
       </Expandable>
     </ResponseField>
@@ -95,7 +99,10 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
     )
     for group in catalog.kinds:
         for offer in group.offers:
-            print(offer.id, offer.name, offer.price_from_usd, offer.currency)
+            cheapest = min((o["price"] for o in offer.options), default=None)
+            print(offer.id, offer.name, cheapest, offer.currency)
+
+# Pass currency="STAR" to price the same catalog in Telegram Stars.
 ```
 
 ```json Response
@@ -110,17 +117,14 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
           "mode": "rotating",
           "ip_version": "IPv4",
           "name": "US Residential Rotating",
-          "description": "High-quality US residential proxies",
           "country_code": "US",
           "is_available": true,
-          "price_from_usd": 3.5,
           "currency": "USD",
           "options": [
             {
               "price": 3.5,
               "period_days": 30,
-              "period_name": "30 days",
-              "period_months": 1
+              "period_name": "30 days"
             }
           ]
         }
