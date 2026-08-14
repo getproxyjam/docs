@@ -1,0 +1,55 @@
+---
+title: "Health checks and failover"
+description: "Probe the active proxy on a schedule and switch to a backup when it stops responding."
+---
+
+A health check sends one request through the proxy you are currently using and records whether it succeeded. If you have also enabled failover and nominated a backup, a failed check switches you to that backup.
+
+Both are off by default. Turn them on under Settings in the extension's options.
+
+## What gets checked
+
+Only the **active** proxy. Checking an inactive one would mean switching to it, which would disrupt your browsing — so the extension does not pretend to check proxies it cannot reach without doing that.
+
+For the same reason, health checks only run while you are in single-profile mode. In Direct, Auto, or System mode there is no single active proxy to probe, and the check is skipped.
+
+## Interval
+
+Choose 5, 15, 30, or 60 minutes. The check reuses the same external-IP request as the checker, so it adds no destination beyond `api.ipify.org`.
+
+<Info>
+  This is the only thing in the extension that makes a request without you pressing something. It requires the `alarms` permission, and no alarm is registered while the feature is off.
+</Info>
+
+## Failover
+
+Failover needs two things: the feature enabled, and a failover target set on the profile you are using. Set the target when editing a profile.
+
+When a check finds the active proxy unreachable, the extension:
+
+1. Switches to the profile you nominated.
+2. Shows a notice in the popup naming what changed and why.
+
+It never switches silently, and it never picks a replacement you did not nominate. If the profile has no failover target, a failed check is recorded and nothing else happens.
+
+Dismiss the notice from the popup once you have seen it.
+
+## When failover does not fire
+
+<Steps>
+  <Step title="You switched mid-check">
+    If you change proxy while a check is in flight, the result is discarded. The extension only fails over the profile it actually probed.
+  </Step>
+
+  <Step title="The target no longer exists">
+    If the nominated profile has been deleted, no switch happens.
+  </Step>
+
+  <Step title="The engine is busy">
+    Health checks and the checker's latency measurement both drive the browser's single proxy configuration, so they never run at the same time. If one is running, the other reports that it is busy and skips this round rather than queueing.
+  </Step>
+</Steps>
+
+## Reading the result
+
+The Settings page shows the time and verdict of the last run, and the last failover if there was one. **Run now** triggers a check immediately without waiting for the schedule.

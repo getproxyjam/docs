@@ -1,0 +1,35 @@
+---
+title: "DNS-leak test"
+description: "Why the DNS-leak field reports unavailable instead of a verdict."
+---
+
+The checker has a DNS-leak field. It reports `unavailable` on every browser, and it will keep doing so until it can report something true.
+
+## Why there is no verdict
+
+Detecting a DNS leak means answering one question: which resolver looked up the name you just requested? A browser extension cannot see that. The only way to find out is to ask a **DNS reflection service** — a server that reports back which resolver queried it — and then compare that resolver against your proxy.
+
+The extension ships no such server, and running one would mean sending your DNS lookups to infrastructure operated by us. That contradicts the guarantee the extension is built on: it has no backend, and the only hosts it ever contacts are the three named in the [privacy policy](https://proxyjam.com/extension-privacy-policy).
+
+So the field reports `unavailable` rather than inferring a verdict from something adjacent and presenting it as a DNS result.
+
+<Note>
+  Turning the DNS-leak toggle on does not make the field return a verdict. The toggle exists so the setting is already in place if a truthful implementation arrives.
+</Note>
+
+## What you can check instead
+
+The other checker fields do work, and each names the exact third party it contacts:
+
+| Field | Contacts | What it tells you |
+| --- | --- | --- |
+| Reachability | The proxy itself | Whether the proxy accepts your connection |
+| External IP | `api.ipify.org` | The address the internet sees, through the active proxy |
+| Geo and ASN | `ipwho.is` | Where that address is registered |
+| WebRTC leak | Google's public STUN server | Whether WebRTC exposes local candidates |
+
+All are off by default and each requires a permission grant.
+
+## Remote DNS
+
+Separately from the test, profiles have a **remote DNS** flag. With SOCKS5 this asks the proxy to resolve hostnames on your behalf rather than resolving them locally first, which is the thing that prevents most leaks in the first place. It is a routing setting, not a diagnostic — turning it on changes behaviour, but the extension still cannot verify the outcome for the reason above.

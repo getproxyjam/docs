@@ -122,6 +122,22 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Browser extension",
+        "groups": [
+          {
+            "group": "ProxyJam Connector",
+            "pages": [
+              "extension",
+              "extension/auto-switch-rules",
+              "extension/rule-sets",
+              "extension/health-checks",
+              "extension/containers",
+              "extension/dns-leak"
+            ]
+          }
+        ]
       }
     ]
   },

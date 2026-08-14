@@ -1,0 +1,40 @@
+---
+title: "Per-container proxies"
+description: "Pin a Firefox container to its own proxy, routed ahead of the global mode and rules."
+---
+
+Firefox containers keep cookies and logins separate per context. The extension can assign a proxy to each container, so everything opened in that container goes through that proxy regardless of which mode you are in.
+
+Assign containers on the Containers tab in the extension's options.
+
+<Warning>
+  This is Firefox only. Chrome and Edge expose no container information to extensions, so a request's container cannot be detected there and the tab says so instead of showing controls that would do nothing.
+</Warning>
+
+## Precedence
+
+A request is resolved in this order, and the first match wins:
+
+<Steps>
+  <Step title="Bypass list">
+    Anything on the [bypass list](/extension/auto-switch-rules#bypass-list) goes direct. Localhost and private ranges are always bypassed, including from a container.
+  </Step>
+
+  <Step title="Container assignment">
+    If the request comes from a container you have assigned, it uses that container's proxy. This beats both the global mode and your rules.
+  </Step>
+
+  <Step title="Mode and rules">
+    Everything else follows the current mode: Direct, a single profile, Auto with [rules](/extension/auto-switch-rules), or System.
+  </Step>
+</Steps>
+
+Because container assignments outrank rules, a container pinned to one proxy will not be re-routed by a rule that matches the same site. That is deliberate: the container is the more specific statement of intent.
+
+## Unassigned containers
+
+A container with no assignment behaves like any other tab and follows the mode and rules.
+
+## Deleted profiles
+
+If you delete a profile that a container was assigned to, the assignment is dropped rather than left pointing at nothing. The container returns to following the mode and rules.

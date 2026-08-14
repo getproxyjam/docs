@@ -1,0 +1,28 @@
+---
+title: "Rule sets"
+description: "Group auto-switch rules and turn a whole group on or off without deleting anything."
+---
+
+A rule set is a named group of [auto-switch rules](/extension/auto-switch-rules). Turning a set off removes its rules from routing while leaving them in place, so you can keep a working configuration you only need some of the time.
+
+Sets are managed from the panel at the top of the Rules page.
+
+## How a disabled set behaves
+
+Rules in a disabled set are skipped entirely during matching. They are not deleted, their order is preserved, and turning the set back on restores them exactly as they were.
+
+A rule that belongs to no set is always active. Assign a rule to a set with the set selector on its row.
+
+## Typical uses
+
+- A **Work** set holding the rules for internal hosts, off outside working hours.
+- A **Testing** set that routes a staging domain through a specific proxy, on only while you are testing.
+- A **Region** set per country, with one enabled at a time.
+
+## Deleting a set
+
+Deleting a set does not delete its rules. They become ungrouped and therefore active again. If you meant to stop them routing, disable them individually or move them to another set first.
+
+<Note>
+  Because a disabled set changes which rules route, toggling one re-applies the proxy configuration immediately. On Chrome and Edge the PAC script is recompiled; on Firefox the next request picks up the change.
+</Note>
