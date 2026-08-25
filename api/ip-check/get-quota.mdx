@@ -1,0 +1,59 @@
+---
+title: "Get check quota"
+description: "How many free IP checks are left, and what a paid one costs."
+api: "GET /ip-check/quota"
+---
+
+Every proxy order you have been delivered grants one free
+[IP check](/api/ip-check/check-ip). This endpoint reports how many of those
+you have earned, how many you have spent, and the price once they run out —
+so you can show the cost before the check is submitted.
+
+## Response
+
+<ResponseField name="entitled" type="integer">
+  Free checks earned in total, one per delivered proxy order.
+</ResponseField>
+
+<ResponseField name="used" type="integer">
+  Free checks already spent. This can exceed `entitled` if an order later left
+  the delivered state; the count of what was spent does not change retroactively.
+</ResponseField>
+
+<ResponseField name="free_available" type="integer">
+  Free checks left, never below zero.
+</ResponseField>
+
+<ResponseField name="price" type="string">
+  What a check costs once the free ones are gone, as a decimal **string**.
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  Always `USD`. Checks are debited from the USD wallet and no conversion is
+  performed, so a balance held only in another currency will not pay for one.
+</ResponseField>
+
+<Note>
+A check can still cost nothing when `free_available` is `0`: a recent result
+for the same address is reused free of charge, and that cannot be known until
+the address is given.
+</Note>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.proxyjam.com/public/v1/ip-check/quota \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    quota = proxyjam.ip_check.quota()
+    print(quota.free_available, quota.price_as_decimal())
+```
+
+</CodeGroup>

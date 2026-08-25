@@ -1,0 +1,41 @@
+---
+title: "Get a check"
+description: "Retrieve one of your past IP reputation checks in full."
+api: "GET /ip-check/{check_id}"
+---
+
+Returns a stored check with the same body as
+[Check an IP address](/api/ip-check/check-ip), including every source's
+reading. Free — reading a result you already paid for costs nothing.
+
+## Path parameters
+
+<ParamField path="check_id" type="string" required>
+  The `id` from the original check or from [List checks](/api/ip-check/list-checks).
+</ParamField>
+
+## Errors
+
+| Status | Meaning |
+| --- | --- |
+| `404` | No such check. A check belonging to another account answers the same way. |
+| `422` | `check_id` is not a UUID. |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.proxyjam.com/public/v1/ip-check/9f1b0c2e-0000-4000-8000-000000000001 \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    result = proxyjam.ip_check.get("9f1b0c2e-0000-4000-8000-000000000001")
+    print(result.verdict, result.charge.amount)
+```
+
+</CodeGroup>

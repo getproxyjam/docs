@@ -25,6 +25,7 @@ Include a unique `idempotency_key` (UUID) in your request body. If you send the 
 | `POST /orders/guest` | `idempotency_key` in request body |
 | `POST /orders/{order_id}/extend` | `Idempotency-Key` header (required for mobile rotating; optional for static proxies) |
 | `POST /payments/payment-intents` | `Idempotency-Key` header (required) |
+| `POST /ip-check` | `Idempotency-Key` header (optional, but strongly recommended — the call is billable) |
 
 ## Header-based idempotency
 
@@ -38,7 +39,31 @@ Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
   The `Idempotency-Key` header is **required** for `POST /payments/payment-intents` and for mobile-rotating calls to `POST /orders/{order_id}/extend`. Requests will be rejected without it.
 </Warning>
 
-A replay with the same key returns the cached response. A different request body sent with the same key returns `409 ConflictError`.
+A replay with the same key returns the stored response verbatim — the same body
+you got the first time, down to fields that describe how that first call went.
+On `POST /ip-check`, for instance, a replay repeats the original `charge` and
+`cached` values rather than recomputing them, because it is reporting what
+happened, not what would happen now.
+
+Sending a **different** payload with a key you have already used answers `409`
+with `error.code` of `CONFLICT`. Keys are matched against a hash of the request,
+so this is detected even when the difference is a single character.
+
+## How long a key stays replayable
+
+Stored responses are kept for a limited window — **at least 30 days** from the
+original request. Treat that as a floor, not a promise: do not build a flow that
+depends on replaying a key weeks later.
+
+<Warning>
+  A replay sent after the window has passed is not recognised as a replay. It
+  executes as a brand-new request — which, on a billable endpoint, means it
+  **charges again**. Retries are for minutes and hours, not for months.
+</Warning>
+
+Nothing about this changes the guarantee inside the window. If you retry a failed
+or timed-out request within the ordinary lifetime of that operation, the key does
+exactly what it says.
 
 ## Best practices
 

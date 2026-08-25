@@ -7,9 +7,9 @@ sidebarTitle: "Overview"
 ProxyJam Connector is a browser extension for Chrome, Microsoft Edge, and Firefox. It stores your proxy profiles, switches between them in one click, and can route individual sites through specific proxies using rules you define.
 
 <Note>
-  The extension is a different product from the ProxyJam proxy service documented in the rest of this site. It has no account, no billing, and no API key. It works with whatever proxies you configure, whether you bought them from ProxyJam or somewhere else.
+  The extension is a separate product from the ProxyJam proxy service documented in the rest of this site. It works with whatever proxies you configure, whether you bought them from ProxyJam or somewhere else, and installing it does not sign you in to anything.
 
-  Nothing in the [API Reference](/overview/introduction) applies to it, and installing it does not sign you in to anything.
+  It has one optional connection to the service: the [ProxyJam account tab](/extension/proxyjam-account), where you can sign in, buy a proxy, and connect to it. That tab is the only part of the extension that talks to a server, and it sends nothing until you sign in. Everything else works without it.
 </Note>
 
 ## Install
@@ -30,7 +30,9 @@ ProxyJam Connector is a browser extension for Chrome, Microsoft Edge, and Firefo
 
 ## How it stores your data
 
-Everything lives in your browser's local extension storage on your own device. There is no backend, no account, and no sync. The extension makes no network request at all until you turn on one of the optional checks, and each of those additionally requires you to grant a permission.
+Everything lives in your browser's local extension storage on your own device. There is no sync, no telemetry, and no remote configuration.
+
+The extension is **offline by default**: it makes no network request at all until you opt into one of the optional checks or sign in to a ProxyJam account, and each of those additionally requires you to grant a permission. Nothing is sent in the resting state.
 
 Proxy passwords are never shown back to you in the interface, are redacted from every log, and are excluded from exports unless you explicitly include them.
 
@@ -68,6 +70,12 @@ Profiles also carry a name, notes, a colour tag, a favourite flag, a remote-DNS 
   <Card title="Per-container proxies" icon="box" href="/extension/containers">
     Pin a Firefox container to its own proxy.
   </Card>
+  <Card title="ProxyJam account" icon="cart-shopping" href="/extension/proxyjam-account">
+    Buy a proxy and connect to it without copying anything by hand.
+  </Card>
+  <Card title="Import and export" icon="file-import" href="/extension/import-export">
+    Bring proxies in from a file, take your configuration out, optionally encrypted.
+  </Card>
 </CardGroup>
 
 ## What the extension will not do
@@ -80,14 +88,16 @@ It never fakes a capability. Where a browser cannot do something, the interface 
 | Proxy authentication without a dialog | Yes | Yes |
 | SOCKS5 username and password | No. Chrome itself does not support it, so credentials are stored but ignored — use an IP allowlist instead | Yes |
 | URL and path rules on HTTPS | Hostname only. Chrome strips the path before the PAC script sees it | Full URL |
-| Per-container proxies | No. Chrome exposes no container information to extensions | Yes |
+| Per-container proxies | No. Chrome exposes no container information to extensions, so the build carries no Containers tab | Yes |
 | [DNS-leak verdict](/extension/dns-leak) | Reported as unavailable | Reported as unavailable |
 
 ## Import and export
 
-The extension reads ProxyJam, FoxyProxy, SwitchyOmega, plain text, and CSV files, and maps FoxyProxy and SwitchyOmega patterns onto its own rule types. A pattern it cannot map is reported rather than approximated.
+The extension reads its own JSON, JSON backups from other proxy extensions, plain text, and CSV — detecting the format from the file's structure — and maps third-party rule patterns onto its own rule types. A pattern it cannot map is reported rather than approximated.
 
-Exports are written as `proxyjam-connector.json`. Passwords are stripped unless you opt in. You can also encrypt the whole export with a password, which produces a `proxyjam-connector.pjenc` file — the encryption runs entirely in your browser.
+Exports are written as `proxyjam-connector.json`, `proxies.txt`, or `proxies.csv`. Passwords are stripped unless you opt in. You can also encrypt the whole export with a password, which produces a `proxyjam-connector.pjenc` file — the encryption runs entirely in your browser.
+
+Full details: [Import / Export](/extension/import-export).
 
 ## Privacy and support
 

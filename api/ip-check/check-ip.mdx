@@ -1,0 +1,115 @@
+---
+title: "Check an IP address"
+description: "Score any public IP address against three independent reputation sources."
+api: "POST /ip-check"
+---
+
+Scores one address and returns a single verdict alongside each source's own
+reading. The verdict follows a fixed rule — it is never an average of the
+scores, because the sources use incompatible scales.
+
+Billable. Send an `Idempotency-Key` so a retry replays the original answer
+instead of paying twice. Every proxy order you have been delivered grants one
+free check, and a repeat of a recent check on the same address is free for
+everyone. Use [Get check quota](/api/ip-check/get-quota) to see what is left
+before you call.
+
+<Note>
+This endpoint is behind the `ip_reputation.check.enabled` feature flag. Read
+`GET /flags` to find out whether it is available to you; a disabled feature
+answers `403`.
+</Note>
+
+## Request
+
+<ParamField body="ip" type="string" required>
+  The IPv4 or IPv6 address to check. Must be publicly routable — private and
+  reserved ranges have no reputation to report and are rejected with `422`.
+  IPv6 is canonicalised, so the `ip` in the response may differ from what you
+  sent; treat the returned value as the address that was checked.
+</ParamField>
+
+<ParamField header="Idempotency-Key" type="string">
+  A UUID you generate per submission and reuse on retry. Reusing a key with a
+  *different* address answers `409`.
+</ParamField>
+
+## Response
+
+<ResponseField name="verdict" type="string">
+  `clean`, `suspicious`, `risky` or `blacklisted`.
+</ResponseField>
+
+<ResponseField name="risk_score" type="integer">
+  0–100. The **highest** score any source gave, not the mean.
+</ResponseField>
+
+<ResponseField name="charge" type="object">
+  `amount` (decimal **string** — parse it, do not assume a number), `currency`
+  (always `USD`) and `free`. `free: true` with `cached: true` means a recent
+  result was reused; `free: true` with `cached: false` means one of your free
+  checks was spent.
+</ResponseField>
+
+<ResponseField name="signals" type="object">
+  `tor`, `vpn`, `proxy_detected`, `datacenter`, `recent_abuse`, `known_abuser`
+  and `blocklists`. `proxy_detected` and `datacenter` are reported for
+  information only and never move the verdict — a bare address carries no
+  statement of what it is meant to be.
+</ResponseField>
+
+<ResponseField name="vendors" type="object[]">
+  One entry per source: `vendor`, `label`, `status` (`ok` or `unavailable`),
+  and — when it answered — `band` (`clean`, `suspicious`, `high_risk`), `score`
+  and `risk`. A source that could not be reached is excluded from the verdict
+  rather than counted as clean, so never read a missing band as a good sign.
+</ResponseField>
+
+<ResponseField name="partial" type="boolean">
+  True when at least one source could not be reached, so the verdict rests on
+  fewer opinions than usual.
+</ResponseField>
+
+<ResponseField name="cached" type="boolean">
+  True when a recent result for this exact address was reused. Cached answers
+  are free and are not stored in your history.
+</ResponseField>
+
+<ResponseField name="id" type="string | null">
+  Identifies the stored result for [Get a check](/api/ip-check/get-check).
+  `null` for a cached answer, which stores nothing.
+</ResponseField>
+
+## Errors
+
+| Status | Meaning |
+| --- | --- |
+| `403` | The feature is not enabled for your account. |
+| `409` | Insufficient USD balance (`details.required` is the price), or the `Idempotency-Key` was already used for a different address. |
+| `422` | The address is unparseable or not publicly routable. |
+| `429` | Too many checks. `details.retry_after` and the `Retry-After` header give the delay in seconds. |
+| `503` | Too few sources answered. **Nothing was charged.** |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.proxyjam.com/public/v1/ip-check \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Content-Type: application/json" \
+  -d '{"ip": "8.8.8.8"}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    result = proxyjam.ip_check.check("8.8.8.8", idempotency_key="550e8400-...")
+    print(result.verdict, result.risk_score)
+    for source in result.vendors:
+        print(source.label, source.status, source.band)
+```
+
+</CodeGroup>

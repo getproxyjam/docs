@@ -1,63 +1,174 @@
 ---
 title: "Errors"
-description: "Standard error response format and common HTTP status codes."
+description: "The error response envelope, machine-readable error codes, and how rate limits tell you when to come back."
 ---
 
-ProxyJam uses standard HTTP status codes and returns a consistent error body.
+Every failure — validation, business rule, rate limit, or an unexpected fault —
+comes back in the same shape. There is no second format to special-case.
 
 ## Error response format
 
 ```json
 {
-  "detail": "Human-readable description of the error."
+  "error": {
+    "code": "INSUFFICIENT_FUNDS",
+    "message": "Insufficient funds",
+    "details": { "required": 0.1, "available": 0.0 },
+    "request_id": "01J8XZK4Q9F3T7B2M6N0PVWCEA"
+  }
 }
 ```
 
-Some validation errors return a structured list of fields:
+<ResponseField name="error.code" type="string">
+  Machine-readable. Branch on this, not on `message` — the wording may change,
+  the code will not.
+</ResponseField>
+
+<ResponseField name="error.message" type="string">
+  Human-readable, and localised where a translation exists — by the locale saved
+  on your account, falling back to `Accept-Language`. Safe to show a user, not
+  safe to parse.
+</ResponseField>
+
+<ResponseField name="error.details" type="object | array">
+  Extra context for the codes that carry it — `required` on
+  `INSUFFICIENT_FUNDS`, `retry_after` on `RATE_LIMIT_EXCEEDED`. An empty object
+  when there is nothing to add, so the key is always present.
+</ResponseField>
+
+<ResponseField name="error.request_id">
+  Correlation id for this request, also returned as the `X-Request-ID` header.
+  Quote it when contacting support. You may send your own `X-Request-ID` on the
+  way in and it will be echoed back.
+</ResponseField>
+
+## Error codes
+
+| `error.code` | HTTP | Meaning |
+| --- | --- | --- |
+| `VALIDATION_ERROR` | `422` | The request body or a parameter failed validation. |
+| `UNAUTHORIZED` | `401` | Missing, expired, or malformed credentials. |
+| `FORBIDDEN` | `403` | Authenticated, but not allowed — including a feature that is off for your account. |
+| `NOT_FOUND` | `404` | No such resource, or it belongs to someone else. |
+| `CONFLICT` | `409` | A business rule refused the request: a duplicate, or an `Idempotency-Key` reused for a different payload. |
+| `INSUFFICIENT_FUNDS` | `409` | Not enough balance. `details.required` is the amount needed. |
+| `RATE_LIMIT_EXCEEDED` | `429` | Too many requests. See below. |
+| `SERVICE_UNAVAILABLE` | `503` | A dependency we call could not be reached. |
+| `EXTERNAL_SERVICE_ERROR` | `503` | An upstream service answered, but with a failure. |
+| `INTERNAL_ERROR` | `500` | Unexpected fault on our side. |
+| `DATABASE_ERROR` | `500` | Unexpected storage fault on our side. |
+
+<Note>
+  A missing resource and one owned by another account both answer `404`. That is
+  deliberate: a `403` here would confirm the id exists.
+</Note>
+
+When a `403` comes from a feature being switched off rather than from
+permissions, `details.feature` names the flag — the same name
+`GET /flags` reports, so you can check availability before calling.
+
+## Validation errors
+
+`VALIDATION_ERROR` is the one code where `details` is an **array** rather than an
+object — one entry per field that failed:
 
 ```json
 {
-  "detail": [
-    {
-      "loc": ["body", "email"],
-      "msg": "value is not a valid email address",
-      "type": "value_error.email"
-    }
-  ]
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": [
+      {
+        "field": "body.email",
+        "message": "value is not a valid email address",
+        "code": "validation_error"
+      }
+    ],
+    "request_id": "01J8XZK4Q9F3T7B2M6N0PVWCEA"
+  }
 }
 ```
 
-## HTTP status codes
+`field` is the dotted path to the offending value, starting with the part of the
+request it came from (`body`, `query`, `path`, `header`).
 
-| Code | Meaning |
-| --- | --- |
-| `200` | Success |
-| `201` | Resource created |
-| `400` | Bad request — invalid input or validation error |
-| `401` | Unauthorized — missing or expired token |
-| `403` | Forbidden — authenticated but not allowed |
-| `404` | Resource not found |
-| `409` | Conflict — duplicate or already exists |
-| `422` | Unprocessable entity — request body fails schema validation |
-| `429` | Too many requests — rate limit exceeded |
-| `500` | Internal server error |
+## Rate limits
 
-## Common errors
+Two limits apply, and either can produce a `429`.
 
-<AccordionGroup>
-  <Accordion title="401 Unauthorized">
-    Your `access_token` is missing, expired, or malformed. Refresh it using `POST /users/refresh`.
-  </Accordion>
-  <Accordion title="403 Forbidden">
-    Your account exists but does not have permission to access this resource. This can happen if the resource belongs to another user.
-  </Accordion>
-  <Accordion title="409 Conflict">
-    Returned when you try to create a resource that already exists, such as registering with an email that is already in use.
-  </Accordion>
-  <Accordion title="422 Unprocessable entity">
-    The request body is valid JSON but fails field-level validation. Check the `detail` array for which fields are invalid.
-  </Accordion>
-  <Accordion title="429 Too many requests">
-    The API enforces a global rate limit of 100 requests per minute. Slow down and retry after a short delay.
-  </Accordion>
-</AccordionGroup>
+**A global limit** of 100 requests per 60 seconds, with a burst allowance of 10.
+It is counted per caller, identified in this order: your `X-API-Key`, then your
+authenticated user, then your IP address. An API key and a bearer token for the
+same account are therefore two separate budgets.
+
+**Per-route limits** on the expensive endpoints, which are much tighter. For
+example `POST /ip-check` allows 5 requests per 60 seconds with a burst of 2 —
+each call holds a connection open for the length of three live third-party
+lookups.
+
+### Reading a 429
+
+The delay is reported in both places a client might look:
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1756108800
+```
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded. Please try again later.",
+    "details": { "retry_after": 30 },
+    "request_id": "01J8XZK4Q9F3T7B2M6N0PVWCEA"
+  }
+}
+```
+
+`Retry-After` is always a whole number of seconds — never an HTTP-date — and
+`details.retry_after` is the same number as a JSON integer. Use either.
+
+<Note>
+  A few limits have no meaningful wait to quote. Those answer `429` with an empty
+  `details` and no `Retry-After`; back off on your own schedule rather than
+  reading a missing header as zero.
+</Note>
+
+`X-RateLimit-Reset` is a Unix timestamp in seconds. The `X-RateLimit-*` headers
+describe the global limit and accompany successful responses too, so you can
+slow down before being refused.
+
+## Handling errors
+
+The Python SDK maps each status onto its own exception, so the common cases are
+`except` clauses rather than branches on a code:
+
+```python
+import time
+
+from proxyjam import ConflictError, ProxyJamClient, RateLimitError
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    try:
+        proxyjam.ip_check.check("8.8.8.8")
+    except RateLimitError as exc:
+        time.sleep(exc.retry_after or 30)   # parsed from Retry-After
+    except ConflictError as exc:
+        if exc.code == "INSUFFICIENT_FUNDS":
+            ...  # top up, then retry
+        raise
+```
+
+`409` covers both a genuine conflict and an empty wallet, so `error.code` is what
+separates them. Every exception carries `status_code`, `code`, `request_id` and
+the parsed `response_body` — read `details` from the last of those when you need
+it, for example `exc.response_body["error"]["details"]["required"]`.
+
+Retry `429`, `500` and `503`. Do not retry `4xx` codes other than `429` — the
+request will fail the same way until you change it. When retrying anything that
+spends money, send an `Idempotency-Key` so a retry cannot charge twice; see
+[Idempotency](/overview/idempotency).

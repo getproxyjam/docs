@@ -53,6 +53,7 @@
             "pages": [
               "overview/proxy-types",
               "overview/payment-methods",
+              "overview/ip-reputation",
               "overview/idempotency",
               "overview/errors"
             ]
@@ -116,6 +117,15 @@
             ]
           },
           {
+            "group": "IP reputation",
+            "pages": [
+              "api/ip-check/check-ip",
+              "api/ip-check/get-quota",
+              "api/ip-check/list-checks",
+              "api/ip-check/get-check"
+            ]
+          },
+          {
             "group": "MCP",
             "pages": [
               "api/mcp"
@@ -130,11 +140,16 @@
             "group": "ProxyJam Connector",
             "pages": [
               "extension",
+              "extension/profiles",
               "extension/auto-switch-rules",
               "extension/rule-sets",
+              "extension/checker",
               "extension/health-checks",
+              "extension/dns-leak",
               "extension/containers",
-              "extension/dns-leak"
+              "extension/proxyjam-account",
+              "extension/import-export",
+              "extension/settings"
             ]
           }
         ]

@@ -1,0 +1,119 @@
+---
+title: "IP reputation"
+description: "How the verdict is decided, what a check costs, and when it costs nothing."
+---
+
+`POST /ip-check` scores any public IP address against three independent
+reputation sources and returns one verdict. This page explains the rules behind
+that verdict; the fields themselves are documented in
+[Check an IP address](/api/ip-check/check-ip).
+
+## The sources
+
+Three vendors are queried in parallel, each returning its own reading:
+**Scamalytics**, **IPQualityScore** and **ipdata.co**. Every response names them,
+so you can see who said what rather than trusting a single opaque number.
+
+They publish incompatible scales — two report a 0–100 fraud score, the third a
+set of booleans. Each is therefore first collapsed onto a shared three-step band
+(`clean`, `suspicious`, `high_risk`) on its own scale, and only then combined.
+
+## How the verdict is decided
+
+The verdict is a fixed table, not a tuned formula. Rules are evaluated in order
+and the first match wins:
+
+| Verdict | When |
+| --- | --- |
+| `blacklisted` | The address appears on a public blocklist, or a vendor knows it as an abuser. This is a record of listing, not an opinion. |
+| `risky` | Any vendor says `high_risk`, **or** two or more independently say `suspicious`. |
+| `suspicious` | Exactly one vendor says `suspicious`. |
+| `clean` | Everything else. |
+
+Corroboration is what separates `risky` from `suspicious`: one vendor calling an
+address questionable is an outlier, two agreeing is a signal.
+
+### `risk_score` is a maximum, not an average
+
+The reported `risk_score` is the **highest** normalised value any vendor gave.
+Averaging was rejected on purpose — a mean over two 0–100 scores and one boolean
+object is arithmetic on units that do not mean the same thing, and it would let
+one lenient vendor dilute a genuine warning from another.
+
+### Proxy and datacenter detection never move the verdict
+
+`signals.proxy_detected` and `signals.datacenter` are reported, and deliberately
+not scored.
+
+You hand us a bare address and no statement of what it is meant to be. "This
+looks like a proxy" is a defect for a residential product and the entire point of
+a datacenter one, so grading it would be guessing at your intent — and it would
+mark every datacenter address as bad, which would make the check useless for
+exactly the customers who run them.
+
+Read those two signals yourself, against what you know the address is for.
+
+## When a source cannot be reached
+
+A vendor that fails is **excluded** from the verdict, never counted as clean. Its
+entry comes back with `status: "unavailable"` and no band, and the response is
+flagged `partial: true` so you know the verdict rests on fewer opinions than
+usual.
+
+<Warning>
+  Never read a missing band as a good sign. `partial: true` means less evidence,
+  not less risk.
+</Warning>
+
+If fewer than two sources answer, no verdict is issued at all: the call fails
+with `503` and **nothing is charged**. Our own outage cannot cost you money or
+consume a free check.
+
+## What a check costs
+
+A check costs **$0.10**, debited from your wallet.
+
+<Warning>
+  The charge is in USD and nothing is converted. A balance held only in another
+  currency answers `409` with `error.code` of `INSUFFICIENT_FUNDS` even though
+  the account has funds. Top up your USD balance before checking.
+</Warning>
+
+Two things make a check free.
+
+**Free checks you have earned.** Every proxy order delivered to you grants one.
+Orders that failed provisioning and were refunded do not count — the entitlement
+follows delivery, not payment. Call
+[Get check quota](/api/ip-check/get-quota) to see how many are left.
+
+**A recent result for the same address.** Results are cached for 15 minutes, and
+the cache is keyed on the address alone — not on who asked. If anyone checked
+that address recently, you get the stored answer at no charge.
+
+<Note>
+  Because the cache is shared, a check can be free even when your quota reads
+  `free_available: 0`. It cannot be predicted before you send the address, so
+  quote the price as "$0.10" and treat a zero charge as a bonus rather than
+  promising an exact amount up front.
+</Note>
+
+Tell the two apart from the response: `free: true` with `cached: true` is a
+reused answer, `free: true` with `cached: false` spent one of your own.
+
+## What lands in your history
+
+[List checks](/api/ip-check/list-checks) is a record of stored results, not a log
+of every request you sent. Two kinds of call write nothing:
+
+- **Cache hits.** The answer belongs to whoever originally paid for it, so no row
+  is created and `id` comes back `null`.
+- **Failed checks.** A `503` produces no verdict, so there is nothing to store.
+
+Everything else gets an `id` you can reopen later with
+[Get a check](/api/ip-check/get-check).
+
+## Availability
+
+The endpoint is behind the `ip_reputation.check.enabled` feature flag. Read
+`GET /flags` to find out whether it is on for your account; a disabled feature
+answers `403`.

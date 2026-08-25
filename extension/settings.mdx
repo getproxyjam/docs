@@ -1,0 +1,74 @@
+---
+title: "Settings"
+description: "Theme, debug logging, the optional network checks, health checks, and the bypass list."
+---
+
+The **Settings** tab holds five cards. Two of them decide whether the extension ever makes a request, so they are worth reading before you turn anything on.
+
+## Appearance
+
+**Theme** — Light, Dark, or System. System follows the operating system's preference and updates when it changes.
+
+## Behavior
+
+**Debug logging** writes proxy events to the browser console: mode changes, rule matches, health-check results. It is off by default and useful when a rule is not firing and you want to see what actually matched.
+
+<Note>
+  Debug logging never prints a password, a username, an API key, or a token. Those field names are redacted at the logger, not at the call sites, so a new log line cannot leak one by omission.
+</Note>
+
+## Network checks
+
+Every toggle here is off by default, and each one names the exact third party it contacts. Nothing on this card runs unless you turn it on.
+
+| Toggle | What it contacts |
+| --- | --- |
+| External IP check | `api.ipify.org`, over HTTPS, through the active proxy |
+| Geo / ASN lookup | `ipwho.is`, over HTTPS, sending only the egress IP |
+| WebRTC leak test | `stun.l.google.com`, Google's public STUN server |
+| DNS-leak test | Nothing — see below |
+
+These feed the [Checker](/extension/checker) tab and the [health check](/extension/health-checks).
+
+**Network access permission** — the browser permission the IP and geo requests need, and the one authenticated HTTP proxies need in order to answer the proxy's auth challenge. Grant it here. It is not requested on install.
+
+<Warning>
+  Turning on the **DNS-leak test** does not produce a verdict. Detecting a DNS leak requires a reflection service the extension deliberately does not ship, so the field reports `unavailable` on every browser. The toggle exists so the setting is in place if a truthful implementation ever arrives. Full reasoning: [DNS-leak test](/extension/dns-leak).
+</Warning>
+
+## Health check
+
+Probes the proxy you are currently using on a schedule, and optionally switches to a backup when it stops answering.
+
+- **Periodic health check** — off by default. Intervals of 5, 15, 30, or 60 minutes.
+- **Auto-failover** — switches to the failover target set on the active profile.
+- **Check now** — runs one immediately.
+
+This is the only thing in the extension that makes a request without you pressing something, and no alarm is registered while it is off. Details, including why only the active proxy is checked: [Health checks and failover](/extension/health-checks).
+
+## Bypass list
+
+Hosts that always go direct, whatever mode you are in and whatever your rules say. One entry per line:
+
+- hostnames — `intranet.example.com`
+- host globs — `*.internal`
+- IPv4 CIDR — `10.0.0.0/8`
+- IPv6 literals and prefixes — `::1`, `fc00::/7`
+
+Press **Save bypass list** to apply.
+
+Localhost, private ranges, and plain hostnames with no dot are always bypassed and are not listed here — they cannot be turned off, because sending them through a proxy breaks local development in ways that are hard to diagnose.
+
+### The API bypass
+
+**Keep api.proxyjam.com direct** is on by default. It routes the extension's own requests to the ProxyJam API around your active proxy.
+
+The reason is recovery: without it, a proxy that stops working also cuts off the API you would use to buy or connect to a replacement, and there is no way out from inside the product.
+
+Turn it off and the API goes through your proxy like anything else. The tab warns you when you do.
+
+It affects the API subdomain only. `proxyjam.com` and `www.proxyjam.com` route normally.
+
+<Warning>
+  The bypass has no effect in **System** mode. There the operating system does the proxying, and an extension has nothing to route around.
+</Warning>

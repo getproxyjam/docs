@@ -1,0 +1,122 @@
+---
+title: "ProxyJam account"
+description: "Sign in, buy a proxy, and connect to it in one click — the extension's only networked feature."
+---
+
+The **ProxyJam** tab connects the extension to a ProxyJam account. From it you can buy a proxy, connect to it without copying anything by hand, and manage what you own.
+
+This is the one part of the extension that talks to a server. It is opt-in and isolated: opening the tab makes **no request at all**, and none is made until you sign in.
+
+<Note>
+  The extension does not need an account. Every other feature works with proxies from anywhere, and nothing on this tab is required to use them.
+</Note>
+
+## Signing in
+
+Two ways in, and they are not equivalent.
+
+<Tabs>
+  <Tab title="Email and password">
+    The normal route. The extension signs in, then immediately mints a long-lived API key for itself so your session does not expire every fifteen minutes.
+
+    If the key cannot be minted, you are told so and stay signed in on the short-lived token alone — the tab reports what happened rather than pretending it went fine.
+  </Tab>
+  <Tab title="An API key you paste">
+    Create the key at [proxyjam.com/dashboard/apikey](https://proxyjam.com/dashboard/apikey) and paste it here.
+
+    The API refuses API keys on some endpoints, so this mode genuinely cannot do everything: wallet top-ups, payment intents, and reading your account details are unavailable. The Account section lists exactly which capabilities you have, before you click anything.
+  </Tab>
+</Tabs>
+
+### The permission prompt
+
+The first sign-in asks the browser for access to `api.proxyjam.com`. This permission is **not** requested on install and **not** requested when you open the tab — only when you press Sign in, before anything is sent.
+
+Decline it and nothing is sent at all. The form keeps what you typed and offers to try again.
+
+## Store
+
+The catalog is public, so it loads without an account. Filter by country and type, then press **Buy** on an offer.
+
+Checkout asks for the plan, how many you want, an optional promo code, whether to renew automatically, and how to pay. Only payment methods your account can actually use are offered — offering one that is disabled for you would turn the purchase into an error.
+
+A purchase ends in one of three states, and the tab tells you which:
+
+| Outcome | What happens next |
+| --- | --- |
+| Paid | The proxy is being set up. The tab polls until it is ready. |
+| Awaiting payment | A payment page opens. Finish there, and the proxy appears once payment settles. |
+| Batch pending | Several proxies were ordered at once; they arrive as the provider confirms them. |
+
+Buying more than one creates that many independent proxies, each with its own address and expiry.
+
+## My proxies
+
+Every proxy you own, one per row, showing its address, its expiry, and its traffic where the plan meters it. A proxy still being set up shows its status instead of an address — there is no address yet to show.
+
+<CardGroup cols={3}>
+  <Card title="Connect" icon="plug">
+    One click. Routes the browser through that proxy immediately.
+  </Card>
+  <Card title="Credentials" icon="key">
+    Copy or reveal the username and password for that proxy.
+  </Card>
+  <Card title="Manage" icon="sliders">
+    Extend, buy bandwidth, auto-renew, allowed IPs, protocol, and mobile controls.
+  </Card>
+</CardGroup>
+
+### Mirroring
+
+A purchased proxy becomes an **ordinary profile** in your Profiles list, with a ProxyJam colour tag and the order number in its notes. That is not a copy for display: it is a real profile, so [rules](/extension/auto-switch-rules), [health checks](/extension/health-checks), the [checker](/extension/checker), and [containers](/extension/containers) all work on it exactly as they do on a proxy you added yourself.
+
+Because it is an ordinary profile, you can edit it. Renaming it, changing its scheme, or adjusting anything else sticks: a sync only overwrites a field when the value on the ProxyJam side has actually changed since it was last written. The password is the one exception — it belongs to the proxy, not to you, and a stale one simply fails to connect.
+
+Delete a mirrored profile and it stays deleted. Syncing records that you removed it; it never comes back on its own.
+
+### Credentials
+
+The username and password are held in the profile like any other proxy's, which means they are not in the state the interface reads. Pressing **Credentials** fetches them for that one moment: copying is the primary action, revealing is secondary, and the value is discarded when you close the dialog.
+
+### Managing a proxy
+
+| Action | Applies to |
+| --- | --- |
+| Extend | Static proxies by months; mobile by plan. |
+| Buy bandwidth | Metered plans. |
+| Renew automatically | Any order the provider reports it for. |
+| Allowed IP addresses | Proxies authenticated by IP allowlist. |
+| Protocol | The label on the port. One port serves HTTP, HTTPS, and SOCKS5. |
+| Refresh from provider | Re-reads the order, for when something changed outside the extension. |
+| Rotate exit IP, signature, tags, release | Mobile rotating proxies only. |
+
+Changes that move the address or the credentials update the mirrored profile and re-apply your routing. Changes that do not — an allowlist edit, an auto-renew toggle — leave your routing untouched.
+
+## Wallet
+
+Balance and recent transactions. Top-ups are not taken in the extension: **Top up on proxyjam.com** opens the dashboard, so payment details are entered on the site rather than in a browser extension.
+
+## Signing out
+
+Signing out asks what should happen to the proxies you bought:
+
+- **Keep them as ordinary profiles** — the mirror link is dropped, the profiles stay and keep working.
+- **Delete them** — the profiles are removed from this browser. The proxies themselves remain on your account.
+
+Once signed out, the extension makes no request to the API at all, and the hourly background sync is unregistered rather than skipped.
+
+## Reaching the API through a dead proxy
+
+By default, the extension's own requests to `api.proxyjam.com` go **around** whatever proxy you are using. Without that, a proxy that stops working would cut off the API you would use to replace it, leaving no way out from inside the product.
+
+The bypass is a setting, not a rule — you can turn it off under [Settings → Bypass list](/extension/settings#the-api-bypass). It covers the API subdomain only; `proxyjam.com` itself goes through your proxy like any other site.
+
+<Warning>
+  The bypass cannot work in **System** mode. There the operating system does the proxying and the extension has nothing to route around. If the API becomes unreachable while a proxy is active, the tab offers to switch you back to Direct.
+</Warning>
+
+## What is sent, and when
+
+Nothing until you sign in. After that, only what an action requires: your credentials on sign-in, the order you are buying, the order you are managing. There is no telemetry, no analytics, and no background reporting — the only unattended request is an hourly order sync, and only while you are signed in and own at least one mirrored proxy.
+
+See the [privacy policy](https://proxyjam.com/extension-privacy-policy) for the full list.
