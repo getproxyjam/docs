@@ -86,8 +86,27 @@ pull request to `main`.
 
 ## Deployment
 
-Once changes are merged to `main`, Mintlify publishes the site to
-[docs.proxyjam.com](https://docs.proxyjam.com) automatically. No manual deploy step is required.
+Merging to `main` is meant to publish the site to
+[docs.proxyjam.com](https://docs.proxyjam.com) automatically, with no manual deploy step.
+
+**Verify that it did.** On 2026-09-02 the deployed site turned out to be built from
+2026-06-08 — three months of merges that never shipped, including every page under
+`/extension`, which is how a customer found a 404. Nothing warned anyone: the mirror push
+succeeds, this repository's CI passes, and `mint broken-links` reports a clean source, because
+none of them can see what the hosted site is actually serving.
+
+The one check that catches it takes a second, and it compares the site with itself rather than
+with the repository:
+
+```sh
+curl -s https://docs.proxyjam.com/sitemap.xml | grep -o '<lastmod>[^<]*' | sort | tail -1
+curl -s https://docs.proxyjam.com/sitemap.xml | grep -c '<loc>'
+```
+
+The newest `lastmod` is the real build date, and the `<loc>` count should match the number of
+pages in `docs.json`'s navigation. If the date is stale, the fix is not in this repository —
+it is in the Mintlify dashboard: read the build log and reconnect the GitHub app to
+`getproxyjam/docs`.
 
 ## Contributing
 
