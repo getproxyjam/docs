@@ -122,13 +122,22 @@ List available proxy offers, optionally filtered.
 | --- | --- | --- | --- |
 | `kind` | `residential` / `datacenter` / `mobile` / `static` / `rotating` | `null` | See `ref://offer-kinds`. |
 | `country` | `XX` (ISO-3166-1 alpha-2) | `null` | E.g. `US`, `GB`. |
+| `city` | string | `null` | Exact match on the `city` column. Offers not pinned to a city are excluded. |
 | `response_format` | `csv` / `json` | `csv` | CSV is ~50% cheaper in LLM tokens. |
 
 Returns a flat table — one row per offer, with `kind`, `id`, `name`,
-`country_code`, `mode`, `ip_version`, `is_available`, `currency`, and
-`options` (JSON-encoded list of tariff variants; each variant carries a
-`price` in the row's `currency`). Use `id` as `offer_id` in
-`create_proxy_order`.
+`country_code`, `city`, `region`, `mode`, `ip_version`, `is_available`,
+`currency`, and `options` (JSON-encoded list of tariff variants; each
+variant carries a `price` in the row's `currency`). An empty `city` means
+the offer is not pinned to one and the location is chosen within the
+country. Use `id` as `offer_id` in `create_proxy_order`.
+
+<Note>
+  **No offer carries a city yet.** The `city` argument and column are live, but
+  city-level offers are gated on an open question with our upstream supplier, so
+  every row's `city` is currently empty and filtering by it returns nothing.
+  Filter by `country` until that changes.
+</Note>
 
 ### Orders
 

@@ -22,7 +22,7 @@ Two ways in, and they are not equivalent.
     If the key cannot be minted, you are told so and stay signed in on the short-lived token alone — the tab reports what happened rather than pretending it went fine.
   </Tab>
   <Tab title="An API key you paste">
-    Create the key at [proxyjam.com/dashboard/apikey](https://proxyjam.com/dashboard/apikey) and paste it here.
+    Create the key at [app.proxyjam.com/dashboard/apikey](https://app.proxyjam.com/dashboard/apikey) and paste it here.
 
     The API refuses API keys on some endpoints, so this mode genuinely cannot do everything: wallet top-ups, payment intents, and reading your account details are unavailable. The Account section lists exactly which capabilities you have, before you click anything.
   </Tab>
@@ -36,7 +36,7 @@ Decline it and nothing is sent at all. The form keeps what you typed and offers 
 
 ## Store
 
-The catalog is public, so it loads without an account. Filter by country and type, then press **Buy** on an offer.
+The catalog is public, so it loads without an account. Filter by country and type, then press **Buy** on an offer. Where a country's offers name a city, a city filter appears next to the country one; countries whose offers are not tied to a city do not show it, because there would be nothing to choose between.
 
 Checkout asks for the plan, how many you want, an optional promo code, whether to renew automatically, and how to pay. Only payment methods your account can actually use are offered — offering one that is disabled for you would turn the purchase into an error.
 
@@ -94,7 +94,7 @@ Changes that move the address or the credentials update the mirrored profile and
 
 ## Wallet
 
-Balance and recent transactions. Top-ups are not taken in the extension: **Top up on proxyjam.com** opens the dashboard, so payment details are entered on the site rather than in a browser extension.
+Balance and recent transactions. Top-ups are not taken in the extension: **Top up on proxyjam.com** opens the dashboard at `app.proxyjam.com`, so payment details are entered on the site rather than in a browser extension.
 
 ## Signing out
 
@@ -109,7 +109,7 @@ Once signed out, the extension makes no request to the API at all, and the hourl
 
 By default, the extension's own requests to `api.proxyjam.com` go **around** whatever proxy you are using. Without that, a proxy that stops working would cut off the API you would use to replace it, leaving no way out from inside the product.
 
-The bypass is a setting, not a rule — you can turn it off under [Settings → Bypass list](/extension/settings#the-api-bypass). It covers the API subdomain only; `proxyjam.com` itself goes through your proxy like any other site.
+The bypass is a setting, not a rule — you can turn it off under [Settings → Bypass list](/extension/settings#the-api-bypass). It covers the API subdomain only; the site and the dashboard go through your proxy like any other page.
 
 <Warning>
   The bypass cannot work in **System** mode. There the operating system does the proxying and the extension has nothing to route around. If the API becomes unreachable while a proxy is active, the tab offers to switch you back to Direct.

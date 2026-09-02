@@ -22,29 +22,13 @@ Use `"payment_method": "wallet"` to deduct from your wallet balance instantly, o
   `wallet` or `cryptocloud`.
 </ParamField>
 
-<ParamField body="proxy_type" type="string" default="residential">
-  Proxy type: `datacenter`, `residential`, or `mobile`.
-</ParamField>
-
-<ParamField body="ip_version" type="string" default="IPv4">
-  `IPv4` or `IPv6`.
-</ParamField>
-
-<ParamField body="protocol" type="string" default="HTTP">
-  `HTTP`, `HTTPS`, or `SOCKS5`.
-</ParamField>
-
-<ParamField body="country" type="string" default="US">
-  ISO 3166-1 alpha-2 country code.
-</ParamField>
-
-<ParamField body="city" type="string">
-  Optional city for geo-targeting.
-</ParamField>
-
-<ParamField body="isp" type="string">
-  Optional ISP filter.
-</ParamField>
+<Note>
+  The proxy's type, IP version, protocol and location all come from the offer —
+  there are no request fields for them. Pick where you want the proxy by
+  choosing the right `offer_id`: the catalog exposes `country_code`, `city` and
+  `region` on every offer, and offers whose `city` is `null` let the provider
+  choose within the country. See [List proxy offers](/api/catalog/list-offers).
+</Note>
 
 <ParamField body="quantity" type="integer" default="1">
   Number of proxies.
@@ -126,10 +110,6 @@ curl -X POST https://api.proxyjam.com/public/v1/orders \
   -d '{
     "offer_id": 42,
     "payment_method": "wallet",
-    "proxy_type": "residential",
-    "ip_version": "IPv4",
-    "protocol": "HTTP",
-    "country": "US",
     "quantity": 2,
     "period_days": 30
   }'
@@ -161,8 +141,8 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
   "ip_version": "IPv4",
   "protocol": "HTTP",
   "country": "US",
-  "city": null,
-  "isp": null,
+  "city": "New York City",
+  "isp": "Lumina Broadband",
   "quantity": 2,
   "period_days": 30,
   "bandwidth_gb": null,

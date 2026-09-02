@@ -16,6 +16,20 @@ Returns the full proxy catalog grouped by `kind`. Use query parameters to filter
   Filter by ISO 3166-1 alpha-2 country code (e.g., `US`, `GB`, `DE`).
 </ParamField>
 
+<ParamField query="city" type="string">
+  Filter by city, matching an offer's `city` field exactly (e.g., `New York City`).
+  Offers with a `null` `city` are not pinned to one — the location is chosen
+  within the country — so this filter never returns them.
+
+  <Note>
+    **No offer carries a city yet.** The parameter and the response field are
+    live, but city-level offers are gated on one open question with our upstream
+    supplier, so every offer's `city` is currently `null` and this filter returns
+    an empty list for any value. Filter by `country` until that changes; nothing
+    in your integration will need to change when it does.
+  </Note>
+</ParamField>
+
 <ParamField query="is_available" type="boolean">
   When `true`, returns only offers currently in stock.
 </ParamField>
@@ -55,6 +69,14 @@ Returns the full proxy catalog grouped by `kind`. Use query parameters to filter
         </ResponseField>
         <ResponseField name="country_code" type="string">
           ISO country code of the proxy location.
+        </ResponseField>
+        <ResponseField name="city" type="string">
+          City the proxy is located in. `null` means the offer is not pinned to
+          a city and the location is chosen within the country.
+        </ResponseField>
+        <ResponseField name="region" type="string">
+          State or region the `city` belongs to, where the location catalog
+          records one. `null` otherwise.
         </ResponseField>
         <ResponseField name="is_available" type="boolean">
           Whether the offer is currently purchasable.
