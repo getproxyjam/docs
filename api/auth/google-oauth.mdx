@@ -1,0 +1,103 @@
+---
+title: "Google OAuth"
+description: "Authenticate or link accounts with Google."
+---
+
+ProxyJam supports Google OAuth for sign-in and account linking. See the [Authentication guide](/overview/authentication) for the full flow.
+
+## Endpoints
+
+### Get authorization URL
+
+<Card title="GET /auth/google" icon="arrow-up-right-from-square">
+  Returns a Google authorization URL to redirect the user to.
+</Card>
+
+**Query parameters:**
+
+<ParamField query="redirect_uri" type="string">
+  Your frontend URL that Google will redirect back to after consent.
+</ParamField>
+
+**Response:**
+
+```json
+{
+  "authorization_url": "https://accounts.google.com/o/oauth2/v2/auth?..."
+}
+```
+
+---
+
+### Handle callback
+
+<Card title="GET /auth/google/callback" icon="arrow-down-to-line">
+  Exchanges the authorization code for JWT tokens. Called automatically by the browser after Google redirects.
+</Card>
+
+**Query parameters:**
+
+<ParamField query="code" type="string" required>
+  Authorization code from Google.
+</ParamField>
+
+<ParamField query="state" type="string">
+  CSRF state parameter.
+</ParamField>
+
+**Response:** same as [Sign in](/api/auth/sign-in#response), plus:
+
+<ResponseField name="is_new_user" type="boolean">
+  `true` if a new account was created during this OAuth flow.
+</ResponseField>
+
+<ResponseField name="was_linked" type="boolean">
+  `true` if an existing account was automatically linked.
+</ResponseField>
+
+---
+
+### Link Google account
+
+<Card title="POST /auth/google/link" icon="link">
+  Links Google to an existing authenticated account.
+</Card>
+
+Requires `Authorization: Bearer <access_token>`.
+
+**Request body:**
+
+<ParamField body="code" type="string" required>
+  Google authorization code.
+</ParamField>
+
+**Response:**
+
+<ResponseField name="provider" type="string">`google`</ResponseField>
+<ResponseField name="provider_email" type="string">Email address on the Google account.</ResponseField>
+<ResponseField name="provider_user_id" type="string">Google's user ID.</ResponseField>
+<ResponseField name="linked_at" type="string">ISO 8601 timestamp.</ResponseField>
+
+---
+
+### Unlink Google account
+
+<Card title="DELETE /auth/google/unlink" icon="link-slash">
+  Removes the Google link from the current account.
+</Card>
+
+Requires `Authorization: Bearer <access_token>`.
+
+<Warning>
+  You cannot unlink Google if it is your only authentication method and you have no password set.
+</Warning>
+
+---
+
+### Get connected accounts
+
+<Card title="GET /auth/connected-accounts" icon="list">
+  Returns all OAuth providers linked to the current account.
+</Card>
+
+Requires `Authorization: Bearer <access_token>`.

@@ -1,0 +1,169 @@
+---
+title: "List proxy offers"
+description: "Retrieve all available proxy offers grouped by type."
+api: "GET /catalog"
+---
+
+Returns the full proxy catalog grouped by `kind`. Use query parameters to filter the results.
+
+## Query parameters
+
+<ParamField query="kind" type="string">
+  Filter by proxy type. One of: `datacenter`, `residential`, `mobile`.
+
+  `residential` is the static ISP product — the one on sale. `static` and
+  `rotating` are **not** kinds; they are values of `mode`, and passing either
+  here matches nothing. See [Proxy types](/overview/proxy-types).
+</ParamField>
+
+<ParamField query="country" type="string">
+  Filter by ISO 3166-1 alpha-2 country code (e.g., `US`, `GB`, `DE`).
+</ParamField>
+
+<ParamField query="city" type="string">
+  Filter by city, matching an offer's `city` field exactly (e.g., `New York City`).
+  Offers with a `null` `city` are not pinned to one — the location is chosen
+  within the country — so this filter never returns them.
+
+  <Note>
+    **No offer carries a city yet.** The parameter and the response field are
+    live, but city-level offers are gated on one open question with our upstream
+    supplier, so every offer's `city` is currently `null` and this filter returns
+    an empty list for any value. Filter by `country` until that changes; nothing
+    in your integration will need to change when it does.
+  </Note>
+</ParamField>
+
+<ParamField query="is_available" type="boolean">
+  When `true`, returns only offers currently in stock.
+</ParamField>
+
+<ParamField query="currency" type="string" default="USD">
+  Price currency to render: `USD` (default) or `STAR` (Telegram Stars). Prices are
+  returned only in the selected currency; the other currency's fields are omitted.
+</ParamField>
+
+## Response
+
+<ResponseField name="kinds" type="array">
+  List of offer groups, one per proxy kind.
+
+  <Expandable title="ProxyOffersByKind">
+    <ResponseField name="kind" type="string">
+      The proxy type: `datacenter`, `residential`, or `mobile`.
+    </ResponseField>
+    <ResponseField name="offers" type="array">
+      List of offers for this kind.
+
+      <Expandable title="ProxyOfferResponse">
+        <ResponseField name="id" type="integer">
+          Unique offer ID. Use this when placing an order.
+        </ResponseField>
+        <ResponseField name="kind" type="string">
+          Proxy type: `datacenter`, `residential` or `mobile`.
+        </ResponseField>
+        <ResponseField name="mode" type="string">
+          `static` or `rotating`. Together with `kind` this is what separates
+          the static ISP product (`residential` + `static`) from a rotating
+          residential pool (`residential` + `rotating`).
+        </ResponseField>
+        <ResponseField name="ip_version" type="string">
+          IP version: `IPv4` or `IPv6`.
+        </ResponseField>
+        <ResponseField name="name" type="string">
+          Display name of the offer. It is **not** a product name: for a
+          residential offer it is the internet carrier the address is
+          registered to, and for a mobile offer the carrier the port sits on.
+        </ResponseField>
+        <ResponseField name="country_code" type="string">
+          ISO country code of the proxy location.
+        </ResponseField>
+        <ResponseField name="city" type="string">
+          City the proxy is located in. `null` means the offer is not pinned to
+          a city and the location is chosen within the country.
+        </ResponseField>
+        <ResponseField name="region" type="string">
+          State or region the `city` belongs to, where the location catalog
+          records one. `null` otherwise.
+        </ResponseField>
+        <ResponseField name="is_available" type="boolean">
+          Whether the offer is currently purchasable.
+        </ResponseField>
+        <ResponseField name="currency" type="string">
+          The currency the option prices are in: `USD` or `STAR` (echoes the
+          `currency` query parameter).
+        </ResponseField>
+        <ResponseField name="options" type="array">
+          Pricing options — the units you actually purchase. Each carries a
+          `price` in the response `currency` (`null` when not priced in it)
+          and a `tarification_index` to pass when creating an order; any
+          option can be paid at the shown price in either currency. See
+          [Proxy types](/overview/proxy-types) for the other fields.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of offers across all kinds.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/catalog?kind=residential&country=US&is_available=true"
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+# Catalog is public; the SDK forwards X-API-Key but no auth is required.
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    catalog = proxyjam.catalog.list(
+        kind="residential",
+        country="US",
+        is_available=True,
+    )
+    for group in catalog.kinds:
+        for offer in group.offers:
+            cheapest = min((o["price"] for o in offer.options), default=None)
+            print(offer.id, offer.name, cheapest, offer.currency)
+
+# Pass currency="STAR" to price the same catalog in Telegram Stars.
+```
+
+```json Response
+{
+  "kinds": [
+    {
+      "kind": "residential",
+      "offers": [
+        {
+          "id": 42,
+          "kind": "residential",
+          "mode": "static",
+          "ip_version": "IPv4",
+          "name": "Lumina Broadband",
+          "country_code": "US",
+          "is_available": true,
+          "currency": "USD",
+          "options": [
+            {
+              "price": 5.38,
+              "period_days": 30,
+              "period_name": "30 days",
+              "tarification_index": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "total": 1
+}
+```
+
+</CodeGroup>

@@ -1,0 +1,90 @@
+---
+title: "Create payment intent"
+description: "Create a payment intent to top up your wallet balance."
+api: "POST /payments/payment-intents"
+---
+
+Initiates a payment through a provider. Returns a redirect URL that you send the user to. Once the payment is confirmed by the provider webhook, your wallet is credited automatically.
+
+<Warning>
+  This endpoint requires an `Idempotency-Key` header. Requests without it will be rejected with `400`.
+</Warning>
+
+## Headers
+
+<ParamField header="Idempotency-Key" type="string" required>
+  A UUID that uniquely identifies this payment attempt. Use the same key to safely retry.
+</ParamField>
+
+## Request body
+
+<ParamField body="provider_id" type="string" required>
+  Payment provider ID from `GET /payments/providers`.
+</ParamField>
+
+<ParamField body="amount" type="number" required>
+  Amount in USD to deposit. Must meet the provider's `min_amount`.
+</ParamField>
+
+<ParamField body="currency" type="string" required>
+  Must be `USD`.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Optional key-value pairs attached to the payment record.
+</ParamField>
+
+## Response
+
+<ResponseField name="payment_intent_id" type="string">
+  Internal ID of the payment intent.
+</ResponseField>
+
+<ResponseField name="provider" type="string">
+  Provider used for this payment.
+</ResponseField>
+
+<ResponseField name="redirect_url" type="string">
+  URL to redirect the user to complete the payment.
+</ResponseField>
+
+<ResponseField name="amount" type="number">
+  Confirmed amount in USD.
+</ResponseField>
+
+<ResponseField name="currency" type="string">
+  Always `USD`.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Initial status: `pending`.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl -X POST https://api.proxyjam.com/public/v1/payments/payment-intents \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440002" \
+  -d '{
+    "provider_id": "cryptocloud",
+    "amount": 20.0,
+    "currency": "USD"
+  }'
+```
+
+```json Response
+{
+  "payment_intent_id": "pi_abc123",
+  "provider": "cryptocloud",
+  "redirect_url": "https://pay.cryptocloud.plus/invoice/abc123",
+  "amount": 20.0,
+  "currency": "USD",
+  "status": "pending"
+}
+```
+
+</CodeGroup>

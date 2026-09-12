@@ -1,0 +1,39 @@
+---
+title: "Mark as read"
+description: "Mark a notification as read."
+api: "POST /notifications/mark-read"
+---
+
+Marks a specific notification as read by setting its `read_at` timestamp.
+
+## Request body
+
+<ParamField body="notification_id" type="string" required>
+  UUID of the notification to mark as read.
+</ParamField>
+
+## Response
+
+The updated `NotificationResponse` object with `read_at` populated. See [List notifications](/api/notifications/list#response) for the field reference.
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl -X POST https://api.proxyjam.com/public/v1/notifications/mark-read \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"notification_id": "notif-uuid-1"}'
+```
+
+```json Response
+{
+  "id": "notif-uuid-1",
+  "subject": "Your order is active",
+  "status": "delivered",
+  "read_at": "2024-01-15T11:30:00Z"
+}
+```
+
+</CodeGroup>

@@ -1,0 +1,125 @@
+---
+title: "Compare every source"
+description: "What each reputation source says about one address, side by side, for free."
+api: "POST /ip-check/sources"
+---
+
+The companion to [Check an IP address](/api/ip-check/check-ip), not a cheaper
+version of it. That endpoint asks three vendors and returns one verdict. This
+one shows what each source says and leaves the judgement to you.
+
+**Free, and free structurally.** The published blocklists are held locally, so
+consulting them is a database lookup rather than a request. The paid vendors
+are not called at all — their rows appear only when a recent check on the same
+address is still cached, which is what `cached_check` reports. Nothing is
+charged and no free allowance is spent.
+
+## Do not compare the vendors' numbers directly
+
+Each vendor row carries `score_metric`, `risk_metric` and `score_derived`, and
+they exist because the columns invite a comparison the numbers cannot support:
+
+- `score` is a measurement for some vendors and a band midpoint for others.
+  When `score_derived` is `true`, that vendor published no number of its own
+  and ours is arithmetic, not their finding.
+- `risk` is not the same question twice. One vendor reports a risk level;
+  another reports how *frequently* the address is seen abusing. A high score
+  beside a low wording is those two fields answering different questions, not
+  a vendor contradicting itself.
+
+## Body
+
+<ParamField body="ip" type="string" required>
+  A public IPv4 or IPv6 address. Private and reserved ranges are refused.
+</ParamField>
+
+## Response
+
+<ResponseField name="listings" type="object[]">
+  Every published list held locally, whether or not it contains the address:
+  `source`, `label`, `claim`, `listed`, `network`, `attribution` and
+  `synced_at`.
+
+  Silent sources are included on purpose — a table of hits alone cannot be
+  told apart from one whose corpus never loaded. Check `synced_at` before
+  trusting a `listed: false`: `null` means that list has never loaded here.
+
+  `claim` says what membership would mean, and the three are not
+  interchangeable. `blocklist` is a publisher saying not to route the address,
+  and it is the only one that decides a verdict. `recent_abuse` is a honeypot
+  report from the last couple of days, which ordinary residential addresses
+  pass through routinely. `tor_exit` describes what the address is, not what
+  it did.
+
+  `network` is the matching range rather than the address you asked about — a
+  /20 listing and a single-host listing are different claims.
+</ResponseField>
+
+<ResponseField name="cached_check" type="object | null">
+  The vendors' rows from a recent check on this address, reused for free:
+  `vendors` (same shape as in [Check an IP address](/api/ip-check/check-ip)),
+  `verdict` and `risk_score`.
+
+  `null` means no vendor was asked — not that every vendor was unreachable.
+  This endpoint never calls one.
+</ResponseField>
+
+## Errors
+
+| Status | Meaning |
+| --- | --- |
+| `403` | The feature is off for your account. Read `GET /flags`. |
+| `422` | The address is missing, malformed, or not publicly routable. |
+| `429` | Too many requests. |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST https://api.proxyjam.com/public/v1/ip-check/sources \
+  -H "X-API-Key: $PROXYJAM_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"ip": "1.10.16.42"}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_…") as client:
+    survey = client.ip_check.sources("1.10.16.42")
+
+for entry in survey.listings:
+    if entry.listed:
+        print(f"{entry.label}: {entry.network} ({entry.claim})")
+```
+
+</CodeGroup>
+
+```json Response
+{
+  "ip": "1.10.16.42",
+  "checked_at": "2026-09-09T06:29:30Z",
+  "listings": [
+    {
+      "source": "blocklist_de",
+      "label": "blocklist.de",
+      "claim": "recent_abuse",
+      "listed": false,
+      "network": null,
+      "attribution": "blocklist.de",
+      "synced_at": "2026-09-09T06:29:30Z"
+    },
+    {
+      "source": "spamhaus_drop",
+      "label": "Spamhaus DROP",
+      "claim": "blocklist",
+      "listed": true,
+      "network": "1.10.16.0/20",
+      "attribution": "The Spamhaus Project",
+      "synced_at": "2026-09-09T06:29:30Z"
+    }
+  ],
+  "cached_check": null
+}
+```

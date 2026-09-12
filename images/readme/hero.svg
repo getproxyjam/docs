@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="360" viewBox="0 0 1200 360"
+     role="img" aria-labelledby="title desc">
+  <title id="title">ProxyJam API Docs</title>
+  <desc id="desc">Source repository of docs.proxyjam.com: MDX pages with API frontmatter become rendered reference pages with a live playground.</desc>
+
+  <defs>
+    <linearGradient id="markA" x1="4.94" y1="1.68" x2="21.78" y2="33.08" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5356E1"/>
+      <stop offset="1" stop-color="#C8C9F3"/>
+    </linearGradient>
+    <linearGradient id="markB" x1="1.82" y1="-3.64" x2="35.75" y2="41.68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8C8FEB"/>
+      <stop offset="1" stop-color="#B1BAF7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="360" rx="22" fill="#0A0B10"/>
+  <rect x="0.6" y="0.6" width="1198.8" height="358.8" rx="21.4" fill="none" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="1.2"/>
+
+  <g id="title-block" transform="translate(64 0)">
+    <g id="logo-mark" transform="translate(0 52) scale(1.5)">
+      <path d="M16 0.311523C24.6647 0.311523 31.6885 7.33527 31.6885 16C31.6885 24.6647 24.6647 31.6885 16 31.6885H0.311523V16C0.311523 7.33527 7.33527 0.311523 16 0.311523Z" fill="url(#markA)" stroke="url(#markB)" stroke-width="0.62"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M23.8087 15.4795C24.8094 15.2328 25.7143 14.6132 26.4525 13.7177C25.3611 12.5574 23.9298 11.8663 22.3704 12.1113C23.075 11.2043 23.3695 10.0238 23.2877 8.73691C21.9648 8.65247 20.7561 8.97094 19.8404 9.71784C20.1401 8.10989 19.4505 6.64475 18.2585 5.52362C17.3563 6.26739 16.735 7.17952 16.4921 8.18755C14.6117 7.20226 12.7414 7.17318 10.8201 8.93328C10.7318 9.01416 10.6434 9.0988 10.5549 9.18731C7.16332 12.5789 6.23399 20.7865 8.73583 23.2883C11.2377 25.7901 19.4453 24.8608 22.8368 21.4692C24.8694 19.4366 24.8671 17.464 23.8087 15.4795Z" fill="#FFFFFF"/>
+    </g>
+    <text x="70" y="83" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" letter-spacing="2.4" fill="#6E7488">SOURCE OF DOCS.PROXYJAM.COM</text>
+
+    <text x="0" y="172" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="58" font-weight="650" fill="#F2F4FA">ProxyJam API Docs</text>
+
+    <text x="0" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="23" fill="#A9AFC3">The MDX + docs.json source, built with Mintlify.</text>
+    <text x="0" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="23" fill="#A9AFC3">Edit locally, merge — the site deploys itself.</text>
+
+    <g id="first-command" transform="translate(0 286)">
+      <rect width="336" height="42" rx="10" fill="#12141D" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="1.2"/>
+      <text x="18" y="27" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#3385FF">mint dev</text>
+      <text x="103" y="27" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#6E7488">→ localhost:3000</text>
+    </g>
+  </g>
+
+  <g id="proof" transform="translate(608 44)">
+    <g id="mdx-card">
+      <rect width="248" height="272" rx="12" fill="#12141D" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="1.2"/>
+      <text x="16" y="32" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#6E7488">list-orders.mdx</text>
+      <line x1="1" y1="46" x2="247" y2="46" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="1.2"/>
+      <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">
+        <text x="16" y="84" fill="#6E7488">---</text>
+        <text x="16" y="116" fill="#A9AFC3">title:</text>
+        <text x="88" y="116" fill="#F2F4FA">List orders</text>
+        <text x="16" y="148" fill="#A9AFC3">api:</text>
+        <text x="66" y="148" fill="#3385FF">GET /orders</text>
+        <text x="16" y="180" fill="#6E7488">---</text>
+      </g>
+      <text x="16" y="222" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#6E7488">Retrieve your orders,</text>
+      <text x="16" y="246" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#6E7488">most recent first.</text>
+    </g>
+
+    <g id="flow-arrow" transform="translate(256 130)">
+      <path d="M0 6 H36" stroke="#5356E1" stroke-width="2.4"/>
+      <path d="M36 6 L27 0.5 M36 6 L27 11.5" stroke="#5356E1" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <g id="rendered-card" transform="translate(300 0)">
+      <rect width="248" height="272" rx="12" fill="#0D0F16" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="1.2"/>
+      <circle cx="18" cy="20" r="4" fill="#FFFFFF" fill-opacity="0.14"/>
+      <circle cx="32" cy="20" r="4" fill="#FFFFFF" fill-opacity="0.14"/>
+      <text x="48" y="26" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#6E7488">docs.proxyjam.com</text>
+      <line x1="1" y1="38" x2="247" y2="38" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="1.2"/>
+
+      <g id="mini-sidebar" transform="translate(14 56)">
+        <rect width="64" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.10"/>
+        <rect y="24" width="64" height="12" rx="6" fill="#0066FF"/>
+        <rect y="48" width="64" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.10"/>
+        <rect y="72" width="64" height="12" rx="6" fill="#FFFFFF" fill-opacity="0.10"/>
+      </g>
+      <line x1="92" y1="46" x2="92" y2="264" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="1.2"/>
+
+      <g id="mini-page" transform="translate(108 56)">
+        <text x="0" y="18" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="21" font-weight="640" fill="#F2F4FA">List orders</text>
+        <g transform="translate(0 34)">
+          <rect width="46" height="26" rx="7" fill="#0066FF"/>
+          <text x="23" y="18" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" font-weight="600" fill="#FFFFFF">GET</text>
+          <text x="56" y="18" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" fill="#A9AFC3">/orders</text>
+        </g>
+        <rect y="78" width="124" height="10" rx="5" fill="#FFFFFF" fill-opacity="0.10"/>
+        <rect y="98" width="98" height="10" rx="5" fill="#FFFFFF" fill-opacity="0.10"/>
+        <rect y="118" width="112" height="10" rx="5" fill="#FFFFFF" fill-opacity="0.10"/>
+        <g transform="translate(0 152)">
+          <rect width="88" height="34" rx="9" fill="#0066FF"/>
+          <text x="44" y="22" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" font-weight="600" fill="#FFFFFF">Try it ▸</text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

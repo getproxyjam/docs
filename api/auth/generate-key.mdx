@@ -1,0 +1,81 @@
+---
+title: "Generate API key"
+description: "Create a new API key for programmatic access."
+api: "POST /api-keys"
+---
+
+Generate a new API key for the authenticated user. The raw key is returned **only once** — store it securely.
+
+<Note>
+  This endpoint requires Bearer token authentication. You cannot create an API key using another API key.
+</Note>
+
+## Request body
+
+<ParamField body="name" type="string" required>
+  A human-readable label for the key (1–100 characters).
+</ParamField>
+
+<ParamField body="expires_days" type="integer" required>
+  Number of days until the key expires (1–365). Send `null` for a non-expiring key — the field must always be present.
+</ParamField>
+
+<Note>
+  The request is rejected with 422 if `expires_days` is omitted or if the body contains unknown fields.
+</Note>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique identifier of the API key.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The label you provided.
+</ResponseField>
+
+<ResponseField name="key_prefix" type="string">
+  First 8 characters of the key (for identification).
+</ResponseField>
+
+<ResponseField name="raw_key" type="string">
+  The full API key. **This is the only time you will see it.**
+</ResponseField>
+
+<ResponseField name="is_active" type="boolean">
+  Whether the key is active.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 creation timestamp.
+</ResponseField>
+
+<ResponseField name="expires_at" type="string">
+  ISO 8601 expiration timestamp, or `null` if the key does not expire.
+</ResponseField>
+
+<RequestExample>
+```bash
+curl -X POST https://api.proxyjam.com/public/v1/api-keys \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "CI pipeline",
+    "expires_days": 90
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "CI pipeline",
+  "key_prefix": "pj_AbCdE",
+  "raw_key": "pj_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789AB",
+  "is_active": true,
+  "created_at": "2026-02-22T09:45:00Z",
+  "expires_at": "2026-05-23T09:45:00Z"
+}
+```
+</ResponseExample>

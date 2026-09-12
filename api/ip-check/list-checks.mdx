@@ -1,0 +1,54 @@
+---
+title: "List checks"
+description: "Your past IP reputation checks, newest first."
+api: "GET /ip-check"
+---
+
+Returns a page of the checks you have run.
+
+<Note>
+Only checks that produced a stored result appear here. A reused recent answer
+(`cached: true`) writes nothing, and a run that could not reach enough sources
+writes nothing either — so this is a record of results, not of every request
+you made.
+</Note>
+
+## Query parameters
+
+<ParamField query="limit" type="integer" default="50">
+  1–100.
+</ParamField>
+
+<ParamField query="offset" type="integer" default="0">
+</ParamField>
+
+## Response
+
+<ResponseField name="checks" type="object[]">
+  `id`, `checked_at`, `ip`, `verdict`, `risk_score`, `charge` and `partial`.
+  The per-source detail is omitted here — fetch one check by `id` to get it.
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Rows available, not rows on this page.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/ip-check?limit=20&offset=0" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    page = proxyjam.ip_check.list(limit=20)
+    for row in page.checks:
+        print(row.checked_at, row.ip, row.verdict)
+```
+
+</CodeGroup>

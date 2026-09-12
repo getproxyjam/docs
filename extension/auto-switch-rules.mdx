@@ -1,0 +1,66 @@
+---
+title: "Auto-switch rules"
+description: "Route individual sites through specific proxies, or straight out, using nine condition types."
+---
+
+In Auto mode, every request is matched against your rules in order. The first rule that matches decides where the request goes: through one of your profiles, or direct. If nothing matches, the fallback applies.
+
+Rules live on the Rules page in the extension's options.
+
+## Condition types
+
+| Type | Matches | Example pattern |
+| --- | --- | --- |
+| Exact domain | That host and nothing else | `example.com` |
+| Domain + subdomains | The host and anything under it | `example.com` matches `api.example.com` |
+| Host wildcard | Host with `*` wildcards | `*.eu.example.org` |
+| URL wildcard | Full URL with `*` wildcards | `https://example.com/api/*` |
+| Regex | Regular expression against the URL | `^https?://cdn\d+\.example\.net` |
+| Exact URL | That URL and nothing else | `https://example.com/login` |
+| URL prefix | URL starts with the pattern | `https://example.com/admin` |
+| URL suffix | URL ends with the pattern | `.pdf` |
+| URL contains | Pattern appears anywhere in the URL | `/internal/` |
+
+## Order matters
+
+Rules are evaluated top to bottom and the first match wins, so put the specific ones above the general ones. A rule for `api.example.com` placed below a `example.com` domain-and-subdomains rule will never fire.
+
+Reorder rules with the arrows on each row. Any rule can be disabled without deleting it.
+
+## The fallback
+
+The fallback is what happens when no rule matches. It can be Direct or any profile. Set it at the bottom of the Rules page.
+
+## Path matching on HTTPS in Chrome
+
+<Warning>
+  On Chrome and Edge, the four URL-based types — URL wildcard, exact URL, URL prefix, URL suffix — and any regex that depends on the path only see the hostname when the request is HTTPS.
+
+  Chrome strips the path before handing the URL to the PAC script, so `https://example.com/admin` and `https://example.com/anything-else` are indistinguishable. Host-based conditions are unaffected and remain reliable.
+
+  The extension flags affected rules in the interface rather than letting them silently under-match. Firefox resolves each request directly and sees the full URL.
+</Warning>
+
+## Bypass list
+
+The bypass list sits in front of the rules: anything it matches goes direct, regardless of mode. It accepts hostnames, globs, and CIDR ranges.
+
+These are bypassed by default:
+
+```text
+localhost
+127.0.0.0/8
+10.0.0.0/8
+172.16.0.0/12
+192.168.0.0/16
+169.254.0.0/16
+::1
+fc00::/7
+fe80::/10
+```
+
+Plain hostnames with no dot — the kind you get from an internal DNS suffix — are also treated as local and bypassed.
+
+## Regex safety
+
+Regex patterns are validated before they are accepted. A pattern that could backtrack catastrophically is rejected with an explanation instead of being compiled into the PAC script, where it would stall every request in the browser.

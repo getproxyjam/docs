@@ -1,0 +1,73 @@
+---
+title: "Check a proxy works"
+description: "Report the address a request arrived from — send it through a proxy to read that proxy's exit address."
+api: "GET /ip-check/echo"
+---
+
+Returns the address we saw the request come from, and nothing else.
+
+Sent through one of your proxies, the address that comes back is that proxy's
+exit address. That makes this a working test rather than a claim: if the
+request arrives at all, the proxy carries traffic, and the address it reports
+is the one your targets will see. Sent directly, it reports your own address.
+
+Free, and it stores nothing — it does not appear in
+[List checks](/api/ip-check/list-checks). To find out what that address is
+worth to a fraud system, pass it to [Check an IP address](/api/ip-check/check-ip).
+
+## Response
+
+<ResponseField name="ip" type="string">
+  The address the request arrived from. `unknown` in the rare case the address
+  cannot be read at all.
+</ResponseField>
+
+## Example
+
+Through a proxy — the useful form. `-x` gives cURL the proxy to route through,
+and the address in the answer is the proxy's, not yours.
+
+<CodeGroup>
+
+```bash cURL
+curl -x http://<username>:<password>@<host>:<port> \
+  https://api.proxyjam.com/public/v1/ip-check/echo \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    result = proxyjam.proxies.check("<order-id>")
+    print(result.ok, result.exit_ip, result.latency_ms)
+```
+
+</CodeGroup>
+
+The Python example uses the SDK's own
+[proxy check](https://github.com/getproxyjam/clients), which reads the
+credentials off the order, sends this request through the proxy and times it.
+A proxy that does not answer comes back as `ok=False` with the reason in
+`error`, because a dead proxy is a result rather than a failed call.
+
+Sent directly, with no `-x`, the same endpoint reports the address you are
+calling from:
+
+```bash
+curl https://api.proxyjam.com/public/v1/ip-check/echo \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+## Errors
+
+| Status | When |
+| --- | --- |
+| 401 | No credential, or one we do not recognise. |
+| 429 | Too many calls. This endpoint is cheap but not free to serve; space out a retry loop. |
+
+<Note>
+Nothing here is billable and no free-check allowance is spent. The allowance
+described in [Get check quota](/api/ip-check/get-quota) applies to the paid
+reputation check only.
+</Note>

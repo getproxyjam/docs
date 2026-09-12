@@ -1,0 +1,60 @@
+---
+title: "Profiles"
+description: "Create, edit, and organise the proxies the extension switches between."
+---
+
+A profile is one proxy. Everything else in the extension — modes, rules, containers, health checks — points at a profile, so this is the first tab you use.
+
+Profiles live on the **Profiles** tab in the extension's options. There is no limit on how many you keep.
+
+## Adding a proxy
+
+Press **Add** and fill in the form. Only four fields are required:
+
+| Field | Notes |
+| --- | --- |
+| Name | Anything you like. It is what the popup and the rule targets show. |
+| Scheme | `http`, `https`, `socks4`, `socks5`, or `quic`. |
+| Host | Hostname or IP address. No scheme prefix, no port. |
+| Port | 1–65535. |
+
+The rest are optional:
+
+- **Username / password** — for proxies that require authentication. See [Credentials](#credentials) below.
+- **Notes** — free text, yours to use.
+- **Colour tag** — a dot on the row, for telling groups apart at a glance.
+- **Favourite** — starred profiles sort to the top of the popup.
+- **Remote DNS** — resolve hostnames at the proxy rather than locally. On by default for SOCKS5, because resolving locally is exactly what leaks the name you are trying to hide.
+- **Failover target** — the profile to switch to if a [health check](/extension/health-checks) finds this one unreachable.
+
+## Credentials
+
+Passwords are stored in your browser's local extension storage and are **never shown back to you**. The form shows an empty password field even for a profile that has one; typing into it replaces the stored value, leaving it alone keeps it.
+
+The same rule holds everywhere else: passwords are redacted from every log line, excluded from the state the interface reads, and left out of exports unless you explicitly ask for them.
+
+<Warning>
+  **SOCKS5 credentials do not work on Chrome or Edge.** Chrome's proxy API accepts a SOCKS5 server but provides no way to authenticate to it, so a username and password on a SOCKS5 profile are simply ignored by the browser.
+
+  The extension says so on the profile itself rather than storing credentials that silently do nothing. Firefox honours SOCKS5 authentication normally. HTTP and HTTPS proxy authentication works on every browser.
+</Warning>
+
+## Finding a profile
+
+Three controls sit above the list:
+
+- **Search** matches the name and the host.
+- **Scheme filter** narrows to one of the five schemes.
+- **Sort** — manual order, name, newest, or recently updated.
+
+Manual order is the order you arranged by hand, and it is what the popup uses. The other sorts change only what you are looking at.
+
+## Duplicate and delete
+
+**Duplicate** copies every field into a new profile, so a proxy that differs only in port or credentials takes one edit instead of six. A duplicate is always an ordinary local profile, even when the original mirrored a [ProxyJam order](/extension/proxyjam-account).
+
+**Delete** asks first, and cannot be undone. Rules pointing at a deleted profile are reported rather than silently re-routed, and container assignments pointing at it are dropped.
+
+## Switching to a profile
+
+Use the popup. Click the toolbar icon and pick a profile to send all traffic through it, or pick Direct, Auto, or System. Your choice survives a browser restart.

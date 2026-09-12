@@ -1,0 +1,24 @@
+---
+title: "Revoke API key"
+description: "Permanently deactivate an API key."
+api: "DELETE /api-keys/{key_id}"
+---
+
+Revoke an API key. This action **cannot be undone** — the key will immediately stop working.
+
+## Path parameters
+
+<ParamField path="key_id" type="string" required>
+  The UUID of the API key to revoke.
+</ParamField>
+
+## Response
+
+Returns `204 No Content` on success.
+
+<RequestExample>
+```bash
+curl -X DELETE https://api.proxyjam.com/public/v1/api-keys/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer <access_token>"
+```
+</RequestExample>

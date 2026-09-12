@@ -1,0 +1,31 @@
+---
+title: "Payment webhooks"
+description: "How ProxyJam receives payment confirmation from providers."
+---
+
+Payment providers notify ProxyJam when a payment is completed by sending a webhook to:
+
+```
+POST https://api.proxyjam.com/webhooks/payments/{provider_id}
+```
+
+<Note>
+  This endpoint is called by payment providers, not by your application. You do not need to call it directly.
+</Note>
+
+## What happens after a webhook
+
+When a payment webhook is received:
+
+1. ProxyJam verifies the payload signature.
+2. The associated wallet balance is credited (for top-up intents).
+3. For orders in `pending_payment` status, the order is transitioned to `active` and proxies are provisioned.
+4. A notification is sent to the user.
+
+## Idempotency
+
+Webhooks are processed exactly once using an inbox deduplication pattern. Duplicate webhooks from the provider are safely ignored.
+
+## Delivery failures
+
+If your proxies are not provisioned within a few minutes of payment, contact support with your `payment_intent_id` or order ID.

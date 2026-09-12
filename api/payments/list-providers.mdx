@@ -1,0 +1,86 @@
+---
+title: "List payment providers"
+description: "Return available payment providers for wallet top-up."
+api: "GET /payments/providers"
+---
+
+Returns the payment providers currently available for depositing funds into your wallet. The list varies with authentication (the `wallet` entry appears only for authenticated callers) and with the feature flags applying to the caller, so treat it as the authoritative catalogue rather than hard-coding provider ids.
+
+## Response
+
+Array of provider objects.
+
+<ResponseField name="id" type="string">
+  Provider identifier. Pass this as `provider_id` when creating a payment intent, or as `payment_method` when creating an order.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name, e.g. `"CryptoCloud"`, `"Card"`, `"SBP"`.
+</ResponseField>
+
+<ResponseField name="currencies" type="string[]">
+  Currencies the provider accepts for the intent, e.g. `["USD"]`. A provider may settle in another currency internally; the intent is always denominated in one of these.
+</ResponseField>
+
+<ResponseField name="min_amount" type="integer">
+  Minimum deposit, **in cents**. `100` means $1.00.
+</ResponseField>
+
+<ResponseField name="max_amount" type="integer">
+  Maximum deposit, **in cents**. For the synthetic `wallet` entry this is the current balance.
+</ResponseField>
+
+<ResponseField name="commission_percentage" type="number">
+  Surcharge added on top of the requested amount, in percent.
+</ResponseField>
+
+<ResponseField name="commission_fixed_cents" type="integer">
+  Fixed surcharge in cents, added after the percentage.
+</ResponseField>
+
+<Info>
+  The commission is a **surcharge**, not a deduction: request a $10.00 top-up from a provider with `commission_percentage: 10.0` and the payer is charged $11.00, while the wallet is credited the full $10.00.
+</Info>
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl https://api.proxyjam.com/public/v1/payments/providers \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json Response
+[
+  {
+    "id": "wallet",
+    "name": "Wallet",
+    "currencies": ["USD"],
+    "min_amount": 100,
+    "max_amount": 4250,
+    "commission_percentage": 0.0,
+    "commission_fixed_cents": 0
+  },
+  {
+    "id": "cryptocloud",
+    "name": "CryptoCloud",
+    "currencies": ["USD"],
+    "min_amount": 100,
+    "max_amount": 100000,
+    "commission_percentage": 1.9,
+    "commission_fixed_cents": 0
+  },
+  {
+    "id": "rollypay",
+    "name": "SBP",
+    "currencies": ["USD"],
+    "min_amount": 100,
+    "max_amount": 100000,
+    "commission_percentage": 10.0,
+    "commission_fixed_cents": 0
+  }
+]
+```
+
+</CodeGroup>

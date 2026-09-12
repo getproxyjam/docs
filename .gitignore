@@ -1,0 +1,10 @@
+# Mintlify local preview
+node_modules/
+.mintlify/
+
+# macOS
+.DS_Store
+
+# Local only, never published: agent instructions and the identity guard
+CLAUDE.md
+.githooks/

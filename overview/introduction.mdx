@@ -1,0 +1,45 @@
+---
+title: "Introduction"
+description: "ProxyJam is a proxy service that sells static residential (ISP) proxies: one IP address registered to a named carrier, priced per IP per month and held for the whole period. This API browses the catalogue, places orders and manages the proxies you hold."
+---
+
+ProxyJam is a proxy service. What is on sale today is [static residential (ISP)](https://proxyjam.com/isp-proxies/): one IP address registered to a named internet carrier, hosted on server infrastructure, priced per IP per month and held for the whole period you pay for; the [United States catalogue](https://proxyjam.com/isp-proxies/usa/) names the carrier behind every block. Rotating residential and datacenter proxies are catalogued but not orderable, and ordering mobile rotating is gated per account — which is why this documentation still describes the mobile endpoints in full. This API gives you the same catalogue the dashboard sells from: browse offers, place orders, and manage the proxies you hold — all through a single REST API authenticated with an API key.
+
+## Base URL
+
+All public API requests go to:
+
+```
+https://api.proxyjam.com/public/v1
+```
+
+## Authentication
+
+Every request is authenticated with an API key in the `X-API-Key` header:
+
+```
+X-API-Key: pj_AbCdEf...
+```
+
+Get your key from your [personal account](https://app.proxyjam.com/apikey). See [Authentication](/overview/authentication) for details.
+
+## What you can do
+
+<CardGroup cols={2}>
+  <Card title="Browse the catalog" icon="list" href="/api/catalog/list-offers">
+    Query available proxy offers grouped by type, country, and availability.
+  </Card>
+  <Card title="Place orders" icon="cart-shopping" href="/api/orders/create-order">
+    Order proxies and receive credentials immediately after payment.
+  </Card>
+  <Card title="Manage proxies" icon="sliders" href="/api/orders/proxy-auto-renew">
+    Auto-renew, extend, change protocol, manage whitelists, and sync credentials.
+  </Card>
+  <Card title="Check your wallet" icon="wallet" href="/api/wallet/balance">
+    View balance and transaction history.
+  </Card>
+</CardGroup>
+
+## Request format
+
+All requests and responses use JSON. Include `Content-Type: application/json` for requests with a body.

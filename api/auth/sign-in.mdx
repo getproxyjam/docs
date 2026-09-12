@@ -1,0 +1,52 @@
+---
+title: "Sign in"
+description: "Authenticate with email and password."
+api: "POST /users/sign-in"
+---
+
+Authenticates the user and returns a new pair of JWT tokens.
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  Registered email address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Account password.
+</ParamField>
+
+## Response
+
+Same shape as [Sign up](/api/auth/sign-up#response).
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl -X POST https://api.proxyjam.com/public/v1/users/sign-in \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "you@example.com",
+    "password": "<your-password>"
+  }'
+```
+
+```json Response
+{
+  "access_token": "<YOUR_ACCESS_TOKEN>",
+  "refresh_token": "<YOUR_REFRESH_TOKEN>",
+  "token_type": "bearer",
+  "expires_in": 86400,
+  "user": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "email": "you@example.com",
+    "is_active": true,
+    "is_verified": true,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+</CodeGroup>

@@ -1,0 +1,80 @@
+---
+title: "Sign up"
+description: "Register a new user account."
+api: "POST /users/sign-up"
+---
+
+Creates a new user account and returns JWT tokens. The user is active immediately but email is unverified until `POST /users/verify-email` is called.
+
+## Request body
+
+<ParamField body="email" type="string" required>
+  Valid email address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  Account password.
+</ParamField>
+
+<ParamField body="confirm_password" type="string">
+  Optional. If provided, must match `password`.
+</ParamField>
+
+## Response
+
+<ResponseField name="access_token" type="string">
+  JWT access token. Valid for 24 hours.
+</ResponseField>
+
+<ResponseField name="refresh_token" type="string">
+  JWT refresh token. Use to get a new access token when it expires.
+</ResponseField>
+
+<ResponseField name="token_type" type="string">
+  Always `bearer`.
+</ResponseField>
+
+<ResponseField name="expires_in" type="integer">
+  Access token lifetime in seconds.
+</ResponseField>
+
+<ResponseField name="user" type="object">
+  <Expandable title="UserResponse">
+    <ResponseField name="id" type="string">UUID of the created user.</ResponseField>
+    <ResponseField name="email" type="string">User's email address.</ResponseField>
+    <ResponseField name="is_active" type="boolean">Always `true` on registration.</ResponseField>
+    <ResponseField name="is_verified" type="boolean">Always `false` until email is verified.</ResponseField>
+    <ResponseField name="created_at" type="string">ISO 8601 timestamp.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl -X POST https://api.proxyjam.com/public/v1/users/sign-up \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "you@example.com",
+    "password": "<your-password>"
+  }'
+```
+
+```json Response
+{
+  "access_token": "<YOUR_ACCESS_TOKEN>",
+  "refresh_token": "<YOUR_REFRESH_TOKEN>",
+  "token_type": "bearer",
+  "expires_in": 86400,
+  "user": {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "email": "you@example.com",
+    "is_active": true,
+    "is_verified": false,
+    "created_at": "2024-01-15T10:00:00Z"
+  }
+}
+```
+
+</CodeGroup>

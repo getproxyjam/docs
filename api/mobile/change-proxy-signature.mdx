@@ -1,0 +1,84 @@
+---
+title: "Change proxy signature"
+description: "Switch the device signature reported by a mobile rotating proxy."
+api: "POST /orders/{order_id}/signature"
+---
+
+Changes the device signature (e.g. operating system fingerprint) used by the proxy. Available signatures can be listed via [List proxy signatures](/api/mobile/list-signatures).
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order backing the mobile rotating proxy.
+</ParamField>
+
+## Request body
+
+<ParamField body="signature" type="string" required>
+  Target device signature, e.g. `android`, `ios`, `linux`, `windows`. See [List proxy signatures](/api/mobile/list-signatures) for the full set.
+</ParamField>
+
+## Response
+
+Live snapshot of the mobile rotating proxy with the new signature applied. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/signature" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"signature": "android"}'
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    proxy = proxyjam.proxies.rotate_signature(
+        "997b4450-e7ae-4ad9-8a25-996e582049c9",
+        "android",
+    )
+    print(proxy.signature)
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "active",
+  "auto_renew": true,
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.proxyjam.com",
+  "port": 24534,
+  "username": "pj_abc",
+  "password": "<proxy-password>",
+  "current_ip": "203.0.113.99",
+  "signature": "android",
+  "tags": ["scrape"],
+  "whitelisted_ips": [],
+  "order_status": "provisioned",
+  "proxy_type": "mobile",
+  "ip_version": "IPv4",
+  "protocol": "HTTP",
+  "country": "US",
+  "city": null,
+  "isp": "T-Mobile",
+  "period_days": 1,
+  "bandwidth_gb": null,
+  "quantity": 1,
+  "total_usd": 1.5,
+  "total_amount": "1.50",
+  "currency": "USD",
+  "promo_code_id": null,
+  "discount_usd": null,
+  "created_at": "2026-12-30T23:59:59Z",
+  "updated_at": "2026-12-31T00:15:01Z",
+  "payment_intent_id": null,
+  "previous_expires_at": null
+}
+```
+
+</CodeGroup>

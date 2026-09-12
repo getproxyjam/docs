@@ -1,0 +1,31 @@
+---
+title: "Verify email"
+description: "Confirm a user's email address with a verification token."
+api: "POST /users/verify-email"
+---
+
+Marks the user's email as verified. The token is sent to the user's email after registration.
+
+## Request body
+
+<ParamField body="token" type="string" required>
+  Email verification token received by email.
+</ParamField>
+
+## Response
+
+<ResponseField name="message" type="string">
+  `"Email verified successfully"`
+</ResponseField>
+
+## Resend the verification email
+
+If the user did not receive the email, use:
+
+```
+POST /users/resend-verification
+```
+
+with `{ "email": "user@example.com" }`.
+
+The response is always successful regardless of whether the account exists, to prevent user enumeration.

@@ -1,0 +1,51 @@
+---
+title: "Checker"
+description: "Verify that a proxy actually works, and see what it reveals about you."
+---
+
+The **Checker** tab tests your profiles and reports five things about each one. Every field either shows a real answer or says it could not get one — it never fills a gap with a guess.
+
+## The five fields
+
+| Field | What it means |
+| --- | --- |
+| Reachability | Whether the proxy accepted a connection at all. Always available; it needs no third party. |
+| IP | Your egress IP address, as seen from outside. |
+| Latency | Round-trip time through the proxy. |
+| Geo | City, country, and ASN derived from the egress IP. |
+| WebRTC | Whether local ICE candidates leak addresses outside the proxy. |
+| DNS | Whether lookups resolve outside the proxy. See [DNS-leak test](/extension/dns-leak). |
+
+Four of these need an outbound request to a third party, so they are **off by default**. Turn on the ones you want under [Settings → Network checks](/extension/settings#network-checks), where each one names the exact host it contacts.
+
+<Note>
+  A field you have not enabled shows `n/a`, not a blank or a zero. Hover it to see the reason.
+</Note>
+
+## Check versus Measure
+
+Two buttons, two very different operations.
+
+<CardGroup cols={2}>
+  <Card title="Check" icon="circle-check">
+    Tests the proxy without touching your current routing. Safe to run on any profile at any time, including all of them at once.
+  </Card>
+  <Card title="Measure" icon="gauge">
+    Switches the browser onto that proxy, times a real request, then switches back. Accurate, but it briefly routes your traffic through the proxy being tested.
+  </Card>
+</CardGroup>
+
+**Measure** exists because a proxy's true latency cannot be observed from outside it. The extension is explicit about the trade: the button's tooltip states that it briefly routes all traffic through the proxy and restores afterwards.
+
+Only one measure or [health check](/extension/health-checks) can run at a time — both drive the browser's single proxy setting, and two at once would fight. A second one reports `busy` rather than queueing behind the first.
+
+## Running the whole list
+
+**Check all** runs every profile in sequence and fills the table as results arrive. Press it again to stop; results already collected stay on screen.
+
+## Reading a result
+
+- **Reachable, IP changed** — the proxy works and traffic is going through it.
+- **Reachable, IP unchanged** — the proxy answered, but your egress address is the same as without it. Worth investigating.
+- **Unreachable** — the proxy refused or timed out. If this profile is the active one, a [health check](/extension/health-checks) with failover would have switched you off it.
+- **Field shows an error** — that specific lookup failed; hover for the reason. The other fields are still valid.

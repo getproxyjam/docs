@@ -1,0 +1,77 @@
+---
+title: "Proxy types"
+description: "Overview of the proxy types available in the ProxyJam catalog."
+---
+
+Each proxy offer has a `kind` field describing the underlying network type.
+`kind` is an identifier, not a product name — see the note under the table.
+
+## Kinds
+
+| Kind | What it is | Orderable |
+| --- | --- | --- |
+| `residential` | One static IP address registered to a named consumer internet carrier and hosted on server infrastructure. Priced per IP per month and held for the whole period you pay for. Sold under the name [**ISP proxies**](https://proxyjam.com/isp-proxies/), and elsewhere as [static residential proxies](https://proxyjam.com/static-residential-proxies/). | Yes |
+| `mobile` | An IP address on a mobile carrier network (4G/5G), rotating on request or on a timer, billed by traffic plan. | Gated — enabled per account |
+| `datacenter` | An IP address hosted in a data centre, announced by a hosting ASN. | No |
+
+<Note>
+`kind: residential` is the **static ISP** product, not a rotating pool. The
+name is historical: it is the value the catalog stores and the value
+`POST /orders` expects in `proxy_type`, so it cannot change without breaking
+every integration. Rotating residential is catalogued under the same `kind`
+and distinguished by `mode` (`static` versus `rotating`); only `static` is on
+sale today.
+
+Ordering `mobile` is gated behind a per-account flag and returns
+`FeatureDisabled` unless your account has it. `datacenter` offers appear in
+the catalog when the upstream stocks them and are not orderable.
+</Note>
+
+## Options per kind
+
+Every offer sells through its `options` array: pick an option via
+`tarification_index` when creating an order, and you are charged that
+option's full-period price (times `quantity`). Prices render in the
+requested catalog `currency` (`USD` or `STAR`) — the shown price is
+exactly what checkout charges.
+
+### Residential (ISP) options
+
+Each offer includes a list of `options`, where each option has:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `price` | `float` | Price in the requested catalog currency |
+| `period_days` | `int` | Rental period |
+| `period_name` | `string` | Human-readable period label (e.g., `"30 days"`) |
+| `tarification_index` | `int \| null` | Selector to pass when creating an order |
+
+### Mobile options
+
+Mobile options additionally include traffic-based billing:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `price` | `float` | Price in the requested catalog currency |
+| `traffic_mb` | `int \| null` | Included traffic in MB |
+| `period_days` | `int` | Rental period |
+| `period_name` | `string` | Human-readable period label |
+| `traffic_name` | `string` | Traffic label (e.g., `"5 GB"`) |
+| `tarification_index` | `int` | Selector to pass when creating an order (required for mobile rotating) |
+
+## Protocols and IP versions
+
+When placing an order, you can specify:
+
+- `protocol` — `HTTP`, `HTTPS`, or `SOCKS5`
+- `ip_version` — `IPv4` or `IPv6`
+
+Not all offers support every combination. Check the catalog for what each offer supports.
+
+## Filtering the catalog
+
+Use query parameters on `GET /catalog` to filter by kind, country, and availability:
+
+```bash
+GET /catalog?kind=mobile&country=US&is_available=true
+```

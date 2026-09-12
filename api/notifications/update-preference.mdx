@@ -1,0 +1,46 @@
+---
+title: "Update notification preference"
+description: "Enable or disable notifications for a specific channel."
+api: "PUT /notifications/preferences"
+---
+
+Enables or disables notifications for a delivery channel.
+
+## Request body
+
+<ParamField body="channel" type="string" required>
+  The channel to update. One of: `in_app`, `email`.
+</ParamField>
+
+<ParamField body="enabled" type="boolean" required>
+  `true` to enable notifications, `false` to disable.
+</ParamField>
+
+## Response
+
+The updated `NotificationPreferenceResponse`. See [Get preferences](/api/notifications/preferences#response) for the field reference.
+
+## Example
+
+<CodeGroup>
+
+```bash Request
+curl -X PUT https://api.proxyjam.com/public/v1/notifications/preferences \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel": "email",
+    "enabled": false
+  }'
+```
+
+```json Response
+{
+  "id": "pref-uuid-2",
+  "channel": "email",
+  "enabled": false,
+  "updated_at": "2024-01-20T14:30:00Z"
+}
+```
+
+</CodeGroup>

@@ -1,0 +1,72 @@
+---
+title: "List wallets"
+description: "Return the authenticated user's wallets, one row per currency."
+api: "GET /wallets"
+---
+
+Returns every active wallet the authenticated user owns, with one row per currency. A USD wallet is created automatically on first access; other currency wallets appear once they are initialised (e.g. STAR via a Telegram Stars top-up).
+
+<Note>
+  Authenticate with either a Bearer JWT (web sessions) or an `X-API-Key` header (server-to-server). The same response is returned in both cases.
+</Note>
+
+## Response
+
+<ResponseField name="wallets" type="array">
+  List of wallet rows. Each entry has:
+
+  <Expandable title="Wallet">
+    <ResponseField name="wallet_id" type="string">
+      UUID of the wallet.
+    </ResponseField>
+
+    <ResponseField name="balance" type="number">
+      Current balance in the wallet's currency.
+    </ResponseField>
+
+    <ResponseField name="currency" type="string">
+      Currency code (`USD`, `STAR`, ...).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.proxyjam.com/public/v1/wallets \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```python Python
+from proxyjam import ProxyJamClient
+
+with ProxyJamClient(api_key="pj_live_...") as proxyjam:
+    wallets = proxyjam.wallets.list()
+    for w in wallets:
+        print(w.currency, w.balance)
+```
+
+```json Response
+{
+  "wallets": [
+    {
+      "wallet_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "balance": 42.50,
+      "currency": "USD"
+    },
+    {
+      "wallet_id": "0a1b2c3d-4e5f-6789-abcd-ef0123456789",
+      "balance": 120,
+      "currency": "STAR"
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+<Tip>
+  To fetch a single currency, use [`GET /wallets/{currency}/balance`](/api/wallet/balance) or the SDK helper `proxyjam.wallets.get_balance("USD")`.
+</Tip>

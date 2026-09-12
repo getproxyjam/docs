@@ -1,0 +1,77 @@
+---
+title: "Import / Export"
+description: "Move proxies in from a file, and take your configuration out — optionally encrypted."
+---
+
+The **Import / Export** tab moves proxy configurations in and out of the extension. Everything happens on your device; nothing is uploaded at any point, including when you encrypt.
+
+## Importing
+
+Choose a file or paste the content into the box, then press **Import**.
+
+Leave the format on **Auto-detect** unless you have a reason not to. It identifies the file by its structure, and it recognises exports from other proxy extensions as well as this one — a JSON backup from a different proxy manager imports without you having to say what it is.
+
+Recognised input:
+
+- ProxyJam JSON, including files written by builds before 1.0.0
+- JSON backups from other proxy extensions
+- Plain text, one `host:port` per line
+- CSV with a header row containing `host` and `port`
+
+### What comes across
+
+Profiles, bypass entries, and auto-switch rules, where the source file has them. Rules are resolved to the profiles created in the same import, by name.
+
+### The report
+
+Every import ends with a report, and it is worth reading. It counts what was created and separately lists:
+
+- **Rejected** entries — a duplicate, or over a limit.
+- **Skipped** entries — malformed, with the first few reasons shown.
+- **Rejected rules** — a condition this extension cannot express, or a target it could not resolve.
+
+<Note>
+  Malformed input never disappears silently. If a line could not be turned into a profile, the report says so and why.
+</Note>
+
+### Encrypted files
+
+If you paste or select a file the extension recognises as one of its own encrypted exports, a password field appears. Enter the password used to create it. A wrong password and a modified file are reported the same way, because they are indistinguishable — that is what the authentication tag is for.
+
+## Exporting
+
+Pick a format and press **Export**. The file downloads immediately.
+
+| Format | Contents |
+| --- | --- |
+| ProxyJam JSON | Everything: profiles, rules, rule sets, bypass list, fallback. |
+| Text | One `host:port` per line. |
+| CSV | One row per profile, with a header. |
+
+Only ProxyJam JSON round-trips completely. Text and CSV carry profiles alone.
+
+### Passwords
+
+Exports **omit usernames and passwords** unless you turn on **Include passwords**. When you do and you are not encrypting, the tab warns you that the file will contain plaintext credentials — because it will.
+
+### Encryption
+
+Turn on **Encrypt with a password** to wrap the export in AES-256-GCM. Three things change automatically, and the interface shows each one:
+
+<Steps>
+  <Step title="The format is forced to ProxyJam JSON">
+    An encrypted envelope wraps this extension's own format; the other formats have nothing to wrap.
+  </Step>
+  <Step title="Credentials are always included">
+    A backup you cannot restore from is not a backup. Inside the envelope they are encrypted.
+  </Step>
+  <Step title="The file lands as .pjenc">
+    So it is obvious what it is, and so importing it prompts for the password.
+  </Step>
+</Steps>
+
+The password must be at least 8 characters and is asked for twice.
+
+<Warning>
+  The password is never stored and never leaves your device. If you lose it, the file cannot be recovered — by you or by anyone else.
+</Warning>

@@ -1,0 +1,79 @@
+---
+title: "Payment methods"
+description: "How payments work in ProxyJam — wallet balance, cryptocurrency, card and SBP."
+---
+
+ProxyJam supports several payment methods for proxy orders. Which ones are live for a given caller can change, so read `GET /payments/providers` rather than hard-coding the list.
+
+## Wallet
+
+Your account wallet holds a USD balance that you top up via a payment provider. When placing an order with `"payment_method": "wallet"`, the order amount is deducted from your balance instantly. No external redirect is required.
+
+<Info>
+  Wallet payments are only available for authenticated users. Guest checkout does not support wallet.
+</Info>
+
+## CryptoCloud
+
+CryptoCloud allows payment with cryptocurrency. When you place an order with `"payment_method": "cryptocloud"`, the API returns a `payment_url` you redirect the user to.
+
+```json
+{
+  "payment_info": {
+    "payment_method": "cryptocloud",
+    "payment_intent_id": "pi_abc123",
+    "payment_url": "https://pay.cryptocloud.plus/..."
+  }
+}
+```
+
+After payment is confirmed, CryptoCloud sends a webhook to ProxyJam, which activates the order and provisions the proxies.
+
+## Card
+
+`"payment_method": "stripe"` opens a hosted card checkout and returns a `payment_url` the same way. Available to authenticated users.
+
+## SBP
+
+`"payment_method": "rollypay"` pays through SBP, the Russian instant bank-transfer rail. The order is priced in USD as everywhere else; the payment page presents the equivalent amount in rubles.
+
+```json
+{
+  "payment_info": {
+    "payment_method": "rollypay",
+    "payment_intent_id": "pi_abc123",
+    "payment_url": "https://pay.rollypay.io/pay/..."
+  }
+}
+```
+
+<Note>
+  SBP payments settle asynchronously. A payment that arrives after the provider's window has closed is still credited — do not treat an expired payment page as a final answer; wait for the order status.
+</Note>
+
+## Topping up your wallet
+
+To add funds to your wallet:
+
+1. Call `GET /payments/providers` to see available top-up providers.
+2. Call `POST /payments/payment-intents` with the amount and your chosen `provider_id`.
+3. Redirect the user to `redirect_url` in the response.
+4. After payment, ProxyJam receives the webhook and credits your wallet automatically.
+
+Each provider advertises a `commission_percentage`. It is a surcharge on top of the amount you request: ask for a $10.00 top-up from a provider charging 10% and the payer is charged $11.00, while the wallet is credited the full $10.00.
+
+<Warning>
+  `POST /payments/payment-intents` requires an `Idempotency-Key` header. See [Idempotency](/overview/idempotency).
+</Warning>
+
+## Payment flow diagram
+
+```
+User → POST /payments/payment-intents → redirect_url
+     ↓
+  Provider payment page
+     ↓
+  Provider → POST /webhooks/payments/{provider_id} (ProxyJam)
+     ↓
+  Wallet credited / Order activated
+```
