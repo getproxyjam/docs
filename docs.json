@@ -151,7 +151,8 @@
               "extension/containers",
               "extension/proxyjam-account",
               "extension/import-export",
-              "extension/settings"
+              "extension/settings",
+              "extension/support"
             ]
           }
         ]
