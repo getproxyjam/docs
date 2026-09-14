@@ -68,21 +68,16 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
   "country": "US",
   "quantity": 2,
   "period_days": 30,
-  "proxy_access": [
-    {
-      "id": "1836367",
-      "host": "proxy.ProxyJam.com",
-      "port": 10001,
-      "username": "usr_abc",
-      "password": "<proxy-password>",
-      "protocol": "HTTP",
-      "status": "active",
-      "expires_at": "2024-02-14T10:00:00Z",
-      "whitelisted_ips": [],
-      "bandwidth_total_gb": 1.0,
-      "bandwidth_used_gb": 0.0
-    }
-  ]
+  "proxy_host": "proxy.ProxyJam.com",
+  "proxy_port": 10001,
+  "proxy_username": "usr_abc",
+  "proxy_password": "<proxy-password>",
+  "proxy_protocol": "HTTP",
+  "proxy_status": "active",
+  "proxy_expires_at": "2024-02-14T10:00:00Z",
+  "whitelisted_ips": [],
+  "bandwidth_total_gb": 1.0,
+  "bandwidth_used_gb": 0.0
 }
 ```
 

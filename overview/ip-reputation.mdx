@@ -48,7 +48,7 @@ Averaging was rejected on purpose — a mean over two 0–100 scores and one boo
 object is arithmetic on units that do not mean the same thing, and it would let
 one lenient vendor dilute a genuine warning from another.
 
-### Proxy and datacenter detection never move the verdict
+### Proxy and datacenter signals are not part of the verdict rule
 
 `signals.proxy_detected` and `signals.datacenter` are reported, and deliberately
 not scored.
@@ -60,6 +60,12 @@ mark every datacenter address as bad, which would make the check useless for
 exactly the customers who run them.
 
 Read those two signals yourself, against what you know the address is for.
+
+Anonymity can still reach the verdict through a vendor's own reading. ipdata.co's
+`is_anonymous` flag puts its reading in the suspicious band, and the Scamalytics
+and IPQualityScore scores come from those vendors' own models, which may weigh
+proxy or VPN use. That is why each vendor's reading is returned beside the verdict:
+an address flagged only for anonymity shows up there as exactly that.
 
 ## When a source cannot be reached
 

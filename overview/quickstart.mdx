@@ -72,23 +72,20 @@ This guide walks you through the full flow: create an account, browse the catalo
       }'
     ```
 
-    The response contains your proxy credentials under `proxy_access`:
+    Once the order is provisioned, the response carries your proxy credentials as
+    top-level `proxy_*` fields (they are `null` until then):
 
     ```json
     {
       "id": "order-uuid",
       "status": "active",
-      "proxy_access": [
-        {
-          "host": "proxy.ProxyJam.com",
-          "port": 10001,
-          "username": "user_abc",
-          "password": "<your-password>",
-          "protocol": "HTTP",
-          "status": "active",
-          "expires_at": "2024-02-01T00:00:00Z"
-        }
-      ]
+      "proxy_host": "proxy.ProxyJam.com",
+      "proxy_port": 10001,
+      "proxy_username": "user_abc",
+      "proxy_password": "<your-password>",
+      "proxy_protocol": "HTTP",
+      "proxy_status": "active",
+      "proxy_expires_at": "2024-02-01T00:00:00Z"
     }
     ```
   </Step>

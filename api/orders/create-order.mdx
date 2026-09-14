@@ -74,29 +74,23 @@ Use `"payment_method": "wallet"` to deduct from your wallet balance instantly, o
   Order status. One of: `pending`, `pending_payment`, `active`, `failed`, `cancelled`, `expired`.
 </ResponseField>
 <ResponseField name="total_usd" type="number">Total charged in USD.</ResponseField>
-<ResponseField name="payment_info" type="object">
-  <Expandable title="PaymentInfo">
-    <ResponseField name="payment_method" type="string">`wallet` or `cryptocloud`.</ResponseField>
-    <ResponseField name="payment_intent_id" type="string">Present for cryptocloud payments.</ResponseField>
-    <ResponseField name="payment_url" type="string">Redirect URL for crypto payment. Present for cryptocloud.</ResponseField>
-  </Expandable>
-</ResponseField>
-<ResponseField name="proxy_access" type="array">
-  Populated once the order is `active`. Each item:
-  <Expandable title="ProxyAccess">
-    <ResponseField name="id" type="string">Provider proxy ID.</ResponseField>
-    <ResponseField name="host" type="string">Proxy hostname or IP.</ResponseField>
-    <ResponseField name="port" type="integer">Proxy port.</ResponseField>
-    <ResponseField name="username" type="string">Authentication username.</ResponseField>
-    <ResponseField name="password" type="string">Authentication password.</ResponseField>
-    <ResponseField name="protocol" type="string">Connection protocol.</ResponseField>
-    <ResponseField name="status" type="string">Proxy status.</ResponseField>
-    <ResponseField name="expires_at" type="string">ISO 8601 expiry timestamp.</ResponseField>
-    <ResponseField name="whitelisted_ips" type="array">List of allowed source IPs.</ResponseField>
-    <ResponseField name="bandwidth_total_gb" type="number">Total traffic limit in GB.</ResponseField>
-    <ResponseField name="bandwidth_used_gb" type="number">Traffic already used in GB.</ResponseField>
-  </Expandable>
-</ResponseField>
+<ResponseField name="payment_method" type="string">How the order is paid, e.g. `wallet` or `cryptocloud`.</ResponseField>
+<ResponseField name="payment_intent_id" type="string">Present for provider payments such as cryptocloud.</ResponseField>
+<ResponseField name="payment_url" type="string">Redirect URL for a provider payment. Present for cryptocloud.</ResponseField>
+
+The order carries one proxy, and its access fields sit at the top level of the response.
+They are `null` until the order is provisioned.
+
+<ResponseField name="proxy_host" type="string">Proxy hostname or IP.</ResponseField>
+<ResponseField name="proxy_port" type="integer">Proxy port.</ResponseField>
+<ResponseField name="proxy_username" type="string">Authentication username.</ResponseField>
+<ResponseField name="proxy_password" type="string">Authentication password.</ResponseField>
+<ResponseField name="proxy_protocol" type="string">Connection protocol.</ResponseField>
+<ResponseField name="proxy_status" type="string">Proxy status.</ResponseField>
+<ResponseField name="proxy_expires_at" type="string">ISO 8601 expiry timestamp.</ResponseField>
+<ResponseField name="whitelisted_ips" type="array">List of allowed source IPs.</ResponseField>
+<ResponseField name="bandwidth_total_gb" type="number">Total traffic limit in GB.</ResponseField>
+<ResponseField name="bandwidth_used_gb" type="number">Traffic already used in GB.</ResponseField>
 
 ## Example — wallet payment
 
@@ -150,26 +144,19 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
   "notes": null,
   "created_at": "2024-01-15T10:00:00Z",
   "updated_at": "2024-01-15T10:00:05Z",
-  "payment_info": {
-    "payment_method": "wallet",
-    "payment_intent_id": null,
-    "payment_url": null
-  },
-  "proxy_access": [
-    {
-      "id": "1836367",
-      "host": "proxy.ProxyJam.com",
-      "port": 10001,
-      "username": "usr_abc",
-      "password": "<proxy-password>",
-      "protocol": "HTTP",
-      "status": "active",
-      "expires_at": "2024-02-14T10:00:00Z",
-      "whitelisted_ips": [],
-      "bandwidth_total_gb": 1.0,
-      "bandwidth_used_gb": 0.0
-    }
-  ]
+  "payment_method": "wallet",
+  "payment_intent_id": null,
+  "payment_url": null,
+  "proxy_host": "proxy.ProxyJam.com",
+  "proxy_port": 10001,
+  "proxy_username": "usr_abc",
+  "proxy_password": "<proxy-password>",
+  "proxy_protocol": "HTTP",
+  "proxy_status": "active",
+  "proxy_expires_at": "2024-02-14T10:00:00Z",
+  "whitelisted_ips": [],
+  "bandwidth_total_gb": 1.0,
+  "bandwidth_used_gb": 0.0
 }
 ```
 

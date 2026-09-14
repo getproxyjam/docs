@@ -54,8 +54,9 @@ answers `403`.
 <ResponseField name="signals" type="object">
   `tor`, `vpn`, `proxy_detected`, `datacenter`, `recent_abuse`, `known_abuser`
   and `blocklists`. `proxy_detected` and `datacenter` are reported for
-  information only and never move the verdict — a bare address carries no
-  statement of what it is meant to be.
+  information and are not part of the verdict rule — a bare address carries no
+  statement of what it is meant to be. A vendor's own reading can still weigh
+  anonymity; see [IP reputation](/overview/ip-reputation).
 </ResponseField>
 
 <ResponseField name="vendors" type="object[]">
