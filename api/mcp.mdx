@@ -122,21 +122,23 @@ List available proxy offers, optionally filtered.
 | --- | --- | --- | --- |
 | `kind` | `residential` / `datacenter` / `mobile` | `null` | See `ref://offer-kinds`. `static` and `rotating` are `mode` values, not kinds. |
 | `country` | `XX` (ISO-3166-1 alpha-2) | `null` | E.g. `US`, `GB`. |
-| `city` | string | `null` | Exact match on the `city` column. Offers not pinned to a city are excluded. |
+| `region` | string | `null` | Exact match against a `locations` entry's region (max 100 chars). Combine with `city` to require the same location. Offers with an empty `locations` are excluded. |
+| `city` | string | `null` | Exact match against a `locations` entry's city (max 100 chars). Combine with `region` to disambiguate — the same city name can appear under more than one region. Offers with an empty `locations` are excluded. |
 | `response_format` | `csv` / `json` | `csv` | CSV is ~50% cheaper in LLM tokens. |
 
 Returns a flat table — one row per offer, with `kind`, `id`, `name`,
-`country_code`, `city`, `region`, `mode`, `ip_version`, `is_available`,
-`currency`, and `options` (JSON-encoded list of tariff variants; each
-variant carries a `price` in the row's `currency`). An empty `city` means
-the offer is not pinned to one and the location is chosen within the
-country. Use `id` as `offer_id` in `create_proxy_order`.
+`country_code`, `mode`, `ip_version`, `is_available`, `currency`,
+`locations` (JSON-encoded list of `{region, city}`, empty when none is
+known), and `options` (JSON-encoded list of tariff variants; each variant
+carries a `price` in the row's `currency`). Use `id` as `offer_id` in
+`create_proxy_order`.
 
 <Note>
-  **No offer carries a city yet.** The `city` argument and column are live, but
-  city-level offers are gated on an open question with our upstream supplier, so
-  every row's `city` is currently empty and filtering by it returns nothing.
-  Filter by `country` until that changes.
+  A location narrows the choice of **ISP**, not a delivery guarantee: an
+  order is placed against the whole pool of the matched ISP, so a specific
+  city is not guaranteed. While location filtering is not enabled for your
+  platform, passing `region` or `city` returns the same **403** the HTTP API
+  would (check the `isp.city.enable` flag via `GET /flags` first).
 </Note>
 
 ### Orders

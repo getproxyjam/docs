@@ -20,17 +20,32 @@ Returns the full proxy catalog grouped by `kind`. Use query parameters to filter
   Filter by ISO 3166-1 alpha-2 country code (e.g., `US`, `GB`, `DE`).
 </ParamField>
 
+<ParamField query="region" type="string">
+  Filter by region or state, matched exactly against `locations[].region`
+  (max 100 characters). Can be used alone or together with `city` — together
+  they must match the same location. Offers with an empty `locations` are
+  excluded.
+</ParamField>
+
 <ParamField query="city" type="string">
-  Filter by city, matching an offer's `city` field exactly (e.g., `New York City`).
-  Offers with a `null` `city` are not pinned to one — the location is chosen
-  within the country — so this filter never returns them.
+  Filter by city, matched exactly against `locations[].city` (max 100
+  characters, e.g. `New York`). Can be used alone or together with `region` —
+  together they must match the same location. Offers with an empty
+  `locations` are excluded.
+
+  The same city name can appear under more than one region (e.g. `New York`
+  in New York and in Vermont); pass `region` alongside `city` to pick one.
 
   <Note>
-    **No offer carries a city yet.** The parameter and the response field are
-    live, but city-level offers are gated on one open question with our upstream
-    supplier, so every offer's `city` is currently `null` and this filter returns
-    an empty list for any value. Filter by `country` until that changes; nothing
-    in your integration will need to change when it does.
+    A location narrows the choice of **ISP**, not a delivery guarantee:
+    `locations` lists every region/city the offer's ISP is known to serve in
+    that country, but the order is placed against that ISP's whole pool, so a
+    specific city is not guaranteed. `locations` itself is always present on
+    every offer, filtered or not.
+
+    While location filtering is not enabled for your platform, passing
+    `region` or `city` returns **403** — check the `isp.city.enable` flag via
+    `GET /flags` before relying on either parameter.
   </Note>
 </ParamField>
 
@@ -78,13 +93,22 @@ Returns the full proxy catalog grouped by `kind`. Use query parameters to filter
         <ResponseField name="country_code" type="string">
           ISO country code of the proxy location.
         </ResponseField>
-        <ResponseField name="city" type="string">
-          City the proxy is located in. `null` means the offer is not pinned to
-          a city and the location is chosen within the country.
-        </ResponseField>
-        <ResponseField name="region" type="string">
-          State or region the `city` belongs to, where the location catalog
-          records one. `null` otherwise.
+        <ResponseField name="locations" type="array">
+          Every region/city the offer's ISP is known to serve in
+          `country_code`. Empty when none is known. Because the order is
+          placed by `offer_id` against the ISP's whole pool, a specific entry
+          here is not a delivery guarantee — see the Note above.
+
+          <Expandable title="OfferLocation">
+            <ResponseField name="region" type="string">
+              State or region name, or `null` when the location catalog
+              doesn't record one.
+            </ResponseField>
+            <ResponseField name="city" type="string">
+              City name. The same name can appear under more than one
+              `region`.
+            </ResponseField>
+          </Expandable>
         </ResponseField>
         <ResponseField name="is_available" type="boolean">
           Whether the offer is currently purchasable.
@@ -148,6 +172,10 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
           "ip_version": "IPv4",
           "name": "Lumina Broadband",
           "country_code": "US",
+          "locations": [
+            { "region": "New York", "city": "New York" },
+            { "region": "Vermont", "city": "New York" }
+          ],
           "is_available": true,
           "currency": "USD",
           "options": [
@@ -158,11 +186,30 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
               "tarification_index": 0
             }
           ]
+        },
+        {
+          "id": 57,
+          "kind": "residential",
+          "mode": "static",
+          "ip_version": "IPv4",
+          "name": "Harbor Fiber",
+          "country_code": "US",
+          "locations": [],
+          "is_available": true,
+          "currency": "USD",
+          "options": [
+            {
+              "price": 4.9,
+              "period_days": 30,
+              "period_name": "30 days",
+              "tarification_index": 0
+            }
+          ]
         }
       ]
     }
   ],
-  "total": 1
+  "total": 2
 }
 ```
 

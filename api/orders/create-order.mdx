@@ -25,9 +25,11 @@ Use `"payment_method": "wallet"` to deduct from your wallet balance instantly, o
 <Note>
   The proxy's type, IP version, protocol and location all come from the offer —
   there are no request fields for them. Pick where you want the proxy by
-  choosing the right `offer_id`: the catalog exposes `country_code`, `city` and
-  `region` on every offer, and offers whose `city` is `null` let the provider
-  choose within the country. See [List proxy offers](/api/catalog/list-offers).
+  choosing the right `offer_id`: the catalog exposes `country_code` and
+  `locations` (every region/city the offer's ISP is known to serve) on every
+  offer. The order is placed against that ISP's whole pool, so a specific city
+  is not guaranteed even when `locations` lists one. See
+  [List proxy offers](/api/catalog/list-offers).
 </Note>
 
 <ParamField body="quantity" type="integer" default="1">

@@ -40,8 +40,9 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
     # List your orders
     orders = proxyjam.orders.list()
 
-    # Offers pinned to one city, when the catalog carries any
-    albany = proxyjam.catalog.list(country="US", city="Albany")
+    # Offers whose ISP serves Albany — combine with region to disambiguate
+    # a city name that exists in more than one state
+    albany = proxyjam.catalog.list(country="US", region="New York", city="Albany")
 
     # Prove a proxy carries traffic: the exit address is measured, not asserted
     probe = proxyjam.proxies.check(orders.orders[0].id)
@@ -51,7 +52,7 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
     verdict = proxyjam.ip_check.check("8.8.8.8", idempotency_key="...")
 ```
 
-`catalog.list(city=...)`, `proxies.check()` / `proxies.check_endpoint()` and `ip_check.*` are
+`catalog.list(region=..., city=...)`, `proxies.check()` / `proxies.check_endpoint()` and `ip_check.*` are
 described in the [SDK reference](https://github.com/getproxyjam/clients#api-reference); the
 check's pricing and free allowance are in [IP reputation](/overview/ip-reputation).
 
