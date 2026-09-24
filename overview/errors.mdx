@@ -170,9 +170,13 @@ X-RateLimit-Reset: 1756108800
 
 `X-RateLimit-Limit` is the steady per-minute rate for your identity — 600 above,
 so that refusal was handed to a caller using an API key — not the bucket's
-capacity, which is that number plus the burst. `X-RateLimit-Reset` is a Unix
-timestamp in seconds. All three accompany successful responses too, so you can
-slow down before being refused.
+capacity, which is that number plus the burst. `X-RateLimit-Remaining` counts
+what is left in the bucket, so on a rested client it is legitimately **larger**
+than `X-RateLimit-Limit`: an unauthenticated caller sees a limit of 120 and up
+to 180 remaining. Treat `Remaining` as the number of requests you may send now
+and `Limit` as the rate you settle to, not as two halves of one fraction.
+`X-RateLimit-Reset` is a Unix timestamp in seconds. All three accompany
+successful responses too, so you can slow down before being refused.
 
 A `429` can also come from our edge, before the request reaches the API at all,
 if you open requests far faster than any normal client. It carries the same JSON
