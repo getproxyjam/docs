@@ -53,7 +53,7 @@ comes back in the same shape. There is no second format to special-case.
 | `CONFLICT` | `409` | A business rule refused the request: a duplicate, or an `Idempotency-Key` reused for a different payload. |
 | `INSUFFICIENT_FUNDS` | `409` | Not enough balance. `details.required` is the amount needed. |
 | `RATE_LIMIT_EXCEEDED` | `429` | Too many requests. See below. |
-| `SERVICE_UNAVAILABLE` | `503` | A dependency we call could not be reached. |
+| `SERVICE_UNAVAILABLE` | `503` | A dependency we call could not be reached, or the API is shedding load. Carries `Retry-After`. |
 | `EXTERNAL_SERVICE_ERROR` | `503` | An upstream service answered, but with a failure. |
 | `INTERNAL_ERROR` | `500` | Unexpected fault on our side. |
 | `DATABASE_ERROR` | `500` | Unexpected storage fault on our side. |
@@ -96,15 +96,45 @@ request it came from (`body`, `query`, `path`, `header`).
 
 Two limits apply, and either can produce a `429`.
 
-**A global limit** of 100 requests per 60 seconds, with a burst allowance of 10.
-It is counted per caller, identified in this order: your `X-API-Key`, then your
-authenticated user, then your IP address. An API key and a bearer token for the
-same account are therefore two separate budgets.
+**A per-caller limit**, whose size depends on how you identify yourself:
 
-**Per-route limits** on the expensive endpoints, which are much tighter. For
-example `POST /ip-check` allows 5 requests per 60 seconds with a burst of 2 —
-each call holds a connection open for the length of three live third-party
-lookups.
+| Identified as | Requests per minute | Burst |
+| --- | --- | --- |
+| A bearer token | 300 | 120 |
+| An `X-API-Key` | 600 | 120 |
+| Neither — your IP address | 120 | 60 |
+
+The caller is identified in that order: a bearer token whose signature and
+expiry check out, then an `X-API-Key` we recognise, then the address the request
+came from. A bearer token wins when you send both, so an API key and a token for
+the same account are still two separate budgets — but only one of them is billed
+per request. An API key we do **not** recognise is not an identity at all: that
+request counts against your address, so an invalid key cannot mint a fresh
+budget.
+
+Burst is capacity above the steady rate. A bucket holds `requests per minute +
+burst` and refills at the per-minute rate, so a client that has been idle can
+spend the whole allowance at once and then settles to the steady rate.
+
+**Per-route limits** on endpoints that are expensive or worth protecting. They
+are billed to the same identity as the limit above — for a caller who has not
+authenticated, that is the address.
+
+| Endpoint | Requests per minute | Burst |
+| --- | --- | --- |
+| `POST /users/sign-in` | 10 | 5 |
+| `POST /users/sign-up` | 5 | 3 |
+| `POST /users/forgot-password` | 5 | 2 |
+| `POST /users/reset-password` | 5 | 2 |
+| `POST /users/refresh` | 60 | 30 |
+| OAuth and Telegram callbacks | 30 | 0 |
+| `POST /ip-check` | 5 | 2 |
+| `POST /ip-check/sources` | 30 | 10 |
+| `GET /ip-check/echo` | 30 | 10 |
+
+`POST /ip-check` is the tightest of them because each call holds a connection
+open for the length of three live third-party lookups. Other credential-handling
+endpoints that are not listed share the same class as the ones that are.
 
 ### Reading a 429
 
@@ -113,7 +143,7 @@ The delay is reported in both places a client might look:
 ```
 HTTP/1.1 429 Too Many Requests
 Retry-After: 30
-X-RateLimit-Limit: 100
+X-RateLimit-Limit: 600
 X-RateLimit-Remaining: 0
 X-RateLimit-Reset: 1756108800
 ```
@@ -138,9 +168,16 @@ X-RateLimit-Reset: 1756108800
   reading a missing header as zero.
 </Note>
 
-`X-RateLimit-Reset` is a Unix timestamp in seconds. The `X-RateLimit-*` headers
-describe the global limit and accompany successful responses too, so you can
+`X-RateLimit-Limit` is the steady per-minute rate for your identity — 600 above,
+so that refusal was handed to a caller using an API key — not the bucket's
+capacity, which is that number plus the burst. `X-RateLimit-Reset` is a Unix
+timestamp in seconds. All three accompany successful responses too, so you can
 slow down before being refused.
+
+A `429` can also come from our edge, before the request reaches the API at all,
+if you open requests far faster than any normal client. It carries the same JSON
+envelope and a short `Retry-After`, but no `X-RateLimit-*` headers — those
+describe a budget the API never got to look at.
 
 ## Handling errors
 
@@ -168,7 +205,9 @@ separates them. Every exception carries `status_code`, `code`, `request_id` and
 the parsed `response_body` — read `details` from the last of those when you need
 it, for example `exc.response_body["error"]["details"]["required"]`.
 
-Retry `429`, `500` and `503`. Do not retry `4xx` codes other than `429` — the
-request will fail the same way until you change it. When retrying anything that
-spends money, send an `Idempotency-Key` so a retry cannot charge twice; see
-[Idempotency](/overview/idempotency).
+Retry `429`, `500` and `503`. A `503` carries `Retry-After` when we can name a
+wait — honour it instead of retrying straight away, because a `503` means the API
+is already refusing work and an eager retry makes that worse. Do not retry `4xx`
+codes other than `429` — the request will fail the same way until you change it.
+When retrying anything that spends money, send an `Idempotency-Key` so a retry
+cannot charge twice; see [Idempotency](/overview/idempotency).
