@@ -4,19 +4,24 @@ description: "Use ProxyJam from Claude, OpenAI agents, or any MCP client — wit
 ---
 
 The MCP server is a Model Context Protocol façade over the public API.
-Every endpoint reachable with an `X-API-Key` is also reachable as an
-MCP **tool** — so LLM agents can list catalog offers, place orders,
-manage proxies, and inspect wallet balances directly, without you
-hand-writing HTTP calls.
+The catalog, order and wallet actions available to an `X-API-Key` holder
+are exposed as 16 MCP **tools** — so LLM agents can list catalog offers,
+place orders, manage proxies, and inspect wallet balances directly,
+without you hand-writing HTTP calls.
 
 The server is a thin proxy in front of `/public/v1`: same auth model,
 same idempotency, same rate limits.
 
 ```
 Endpoint:   https://mcp.proxyjam.com/mcp
-Transport:  Streamable HTTP (MCP spec 2025-03-26)
-Auth:       X-API-Key header per request
+Transport:  Streamable HTTP
+Auth:       X-API-Key header on every request
 ```
+
+<Note>
+  The endpoint is the `/mcp` path, not the bare host: `https://mcp.proxyjam.com/`
+  on its own returns `404`.
+</Note>
 
 ## Get an API key
 
@@ -46,7 +51,10 @@ discover and call the right tool.
 
 ### Claude Desktop
 
-Edit `claude_desktop_config.json`
+Claude Desktop's config file launches local (stdio) servers only, and its
+custom-connector dialog has no field for a request header. Bridge to the
+remote endpoint with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote)
+(needs Node.js). Edit `claude_desktop_config.json`
 (macOS: `~/Library/Application Support/Claude/`,
 Windows: `%APPDATA%\Claude\`):
 
@@ -54,16 +62,25 @@ Windows: `%APPDATA%\Claude\`):
 {
   "mcpServers": {
     "proxyjam": {
-      "url": "https://mcp.proxyjam.com/mcp",
-      "headers": {
-        "X-API-Key": "pj_..."
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.proxyjam.com/mcp",
+        "--header",
+        "X-API-Key:${PROXYJAM_API_KEY}"
+      ],
+      "env": {
+        "PROXYJAM_API_KEY": "pj_..."
       }
     }
   }
 }
 ```
 
-Restart Claude Desktop. The ProxyJam tools appear in the tools menu.
+The key goes through `env` rather than straight into `args` so the header
+has no space in it — some platforms split arguments on spaces. Restart
+Claude Desktop; the ProxyJam tools appear in the tools menu.
 
 ### OpenAI Agents SDK
 
@@ -80,7 +97,7 @@ server = MCPServerStreamableHttp(
 )
 
 agent = Agent(
-    name="ProxyShopAssistant",
+    name="ProxyJamAssistant",
     instructions="Help the user manage their ProxyJam proxies.",
     mcp_servers=[server],
 )
@@ -147,7 +164,7 @@ carries a `price` in the row's `currency`). Use `id` as `offer_id` in
 
 | Tool | Arguments | Purpose |
 | --- | --- | --- |
-| `list_my_orders` | `status?`, `limit=50`, `offset=0`, `response_format` | Paginated list of your orders. |
+| `list_my_orders` | `status?`, `limit=50` (max 100), `offset=0`, `response_format` | Paginated list of your orders. |
 | `get_order` | `order_id` | Full detail of one order incl. proxy access. |
 | `get_my_traffic_summary` | `response_format` | Aggregate traffic across all active proxies. |
 | `get_order_traffic` | `order_id` | Traffic for a single order. |
@@ -160,9 +177,25 @@ the API mutation path.
 
 | Tool | Arguments |
 | --- | --- |
-| `create_proxy_order` | `offer_id`, `quantity` (1-50), `idempotency_key`, `period_days` (1-360, default 30), `payment_method` (`wallet`/`cryptocloud`/`stripe`/`telegram_stars`), `payment_currency?`, `promo_code?`, `auto_renew=false`, `tarification_index?`, `confirm=false` |
-| `extend_proxy_period` | `order_id`, `months` (1-24), `idempotency_key`, `confirm=false` |
+| `create_proxy_order` | `offer_id`, `quantity` (1-50), `idempotency_key`, `tarification_index?`, `period_days?` (1-360), `payment_method=wallet` (`wallet`/`cryptocloud`/`stripe`/`telegram_stars`/`rollypay`), `payment_currency?` (`USD`/`STAR`), `promo_code?`, `auto_renew=false`, `confirm=false` |
+| `extend_proxy_period` | `order_id`, `idempotency_key`, exactly one of `months` (1-24) or `tarification_index`, `payment_currency?` (`USD`/`STAR`), `confirm=false` |
 | `buy_proxy_bandwidth` | `order_id`, `bandwidth_gb` (1-5000), `idempotency_key`, `confirm=false` |
+
+`idempotency_key` is 8–64 characters.
+
+- **Picking a tariff.** `tarification_index` is an index into the offer's
+  `options` from `list_offers` and is the primary way to choose a price and
+  period for every offer kind; mobile rotating offers require it.
+  `period_days` is the legacy alternative for residential and datacenter
+  offers and must equal one of the offer's option periods exactly.
+- **Extending.** Static (residential/datacenter) proxies extend by
+  `months`; mobile rotating proxies extend by `tarification_index`, and
+  only those can be paid with `payment_currency="STAR"`.
+- **Bandwidth.** `buy_proxy_bandwidth` applies to static proxies only; a
+  mobile rotating order rejects it.
+- **External payment methods** (`cryptocloud`, `stripe`, `telegram_stars`,
+  `rollypay`) return a payment URL instead of charging the wallet — see
+  [Payment methods](/overview/payment-methods).
 
 #### Non-destructive mutations
 
@@ -181,7 +214,7 @@ No dry-run because nothing is charged.
 | --- | --- | --- |
 | `list_my_wallets` | `response_format` | All currencies you hold. |
 | `get_wallet_balance` | `currency` (`USD` / `STAR`) | Single-currency balance. |
-| `list_wallet_transactions` | `currency`, `limit=100`, `offset=0`, `response_format` | Transaction history. |
+| `list_wallet_transactions` | `currency`, `limit=100` (max 1000), `offset=0`, `response_format` | Transaction history. |
 | `get_transaction` | `transaction_id` | Single transaction detail. |
 
 ## End-to-end example: place an order
@@ -192,13 +225,14 @@ Three calls — discover, preview, confirm.
 # 1. Discover available offers
 offers = await client.call_tool("list_offers", {"kind": "residential"})
 # CSV with kind, id, name, country_code, currency, options, …
+# `options` lists the tariffs; pick one by its position (0, 1, …)
 
 # 2. Preview a purchase (no charge happens)
 preview = await client.call_tool("create_proxy_order", {
     "offer_id": 42,
     "quantity": 5,
     "idempotency_key": "order-2026-05-25-abc",
-    "period_days": 30,
+    "tarification_index": 0,
     "payment_method": "wallet",
     # confirm omitted → defaults to false
 })
@@ -209,16 +243,16 @@ order = await client.call_tool("create_proxy_order", {
     "offer_id": 42,
     "quantity": 5,
     "idempotency_key": "order-2026-05-25-abc",   # same string
-    "period_days": 30,
+    "tarification_index": 0,
     "payment_method": "wallet",
     "confirm": True,
 })
-# Returns: {"orders": [{"id": "...", "status": "PAID", ...}, ...]}
+# Returns: {"orders": [{"id": "...", "status": "paid", ...}, ...]}
 ```
 
 If step 3 errors out (network hiccup, etc.) you can safely retry with
-the same `idempotency_key` — `PostgresIdempotencyStore` returns the
-stored answer instead of creating a second batch of orders.
+the same `idempotency_key` — the API returns the stored answer
+instead of creating a second batch of orders.
 
 ## Reference resources
 
@@ -232,7 +266,7 @@ descriptions. Most clients let the agent fetch resources on demand via
 | `ref://currencies` | `USD`, `STAR` (Telegram Stars). |
 | `ref://proxy-types` | `HTTP`, `SOCKS5`. |
 | `ref://offer-kinds` | `residential`, `datacenter`, `mobile`. |
-| `ref://payment-methods` | `wallet`, `cryptocloud`, `stripe`, `telegram_stars`. |
+| `ref://payment-methods` | `wallet`, `cryptocloud`, `stripe`, `telegram_stars`, `rollypay` (SBP). |
 
 ```python
 contents = await client.read_resource("ref://order-statuses")
@@ -315,30 +349,6 @@ The MCP server intentionally does **not** expose:
 
 If you need any of these, use the [HTTP API](/api/auth/sign-in)
 directly.
-
-## Self-hosting
-
-The MCP server is also distributed inside the backend repo as
-`src/apps/mcp/`. Run it locally with:
-
-```bash
-# HTTP transport (default) — listens on :8081/mcp
-python -m src.apps.mcp
-
-# stdio transport — for clients that prefer to launch a subprocess
-MCP_API_KEY=pj_... python -m src.apps.mcp --transport stdio
-```
-
-Environment variables:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `MCP_PORT` | `8081` | HTTP bind port. |
-| `MCP_API_KEY` | — | Used only in stdio transport; HTTP clients always send their own header. |
-| `PUBLIC_API_INTERNAL_URL` | `http://api:8000/public/v1` | Where the proxy client forwards requests. |
-
-In docker-compose the service is started by default; tail logs with
-`make mcp-logs`.
 
 ## Troubleshooting
 
