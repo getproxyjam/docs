@@ -1,0 +1,53 @@
+---
+title: "Get extension"
+description: "The state of one paid proxy extension."
+api: "GET /orders/{order_id}/extensions/{extension_id}"
+---
+
+Returns one [extension](/api/orders/proxy-extend#extension-object). Poll it after the customer returns from the payment page, or listen for `order_update` WebSocket events whose `event_type` starts with `orders.extension_`.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>UUID of the order.</ParamField>
+<ParamField path="extension_id" type="string" required>UUID of the extension.</ParamField>
+
+## Response
+
+The extension object. `404` if it does not exist, belongs to another order, or is not yours.
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/extensions/0c5e6a8e-2f1b-4f53-8d8a-5a2e8d4f9b31" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```json Response
+{
+  "object": "extension",
+  "id": "0c5e6a8e-2f1b-4f53-8d8a-5a2e8d4f9b31",
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "extended",
+  "failure_reason": null,
+  "payment_method": "stripe",
+  "payment_intent_id": "8b0f2d4c-6e1a-4c3b-9f7e-1d2c3b4a5e6f",
+  "payment_url": "https://checkout.stripe.com/c/pay/...",
+  "months": 3,
+  "tarification_index": null,
+  "currency": "USD",
+  "price": "30.00",
+  "discount": "6.00",
+  "amount": "24.00",
+  "payment_fee": "1.20",
+  "total": "25.20",
+  "previous_expires_at": "2026-10-01T12:00:00Z",
+  "expires_at": "2026-12-30T12:00:00Z",
+  "created_at": "2026-09-26T10:00:00Z",
+  "updated_at": "2026-09-26T10:03:12Z",
+  "completed_at": "2026-09-26T10:03:12Z"
+}
+```
+
+</CodeGroup>

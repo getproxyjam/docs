@@ -23,7 +23,7 @@ Include a unique `idempotency_key` (UUID) in your request body. If you send the 
 | --- | --- |
 | `POST /orders` | `idempotency_key` in request body |
 | `POST /orders/guest` | `idempotency_key` in request body |
-| `POST /orders/{order_id}/extend` | `Idempotency-Key` header (required for mobile rotating; optional for static proxies) |
+| `POST /orders/{order_id}/extend` | `Idempotency-Key` header or `idempotency_key` in the body (required for mobile rotating and for every external payment method; optional for static-proxy wallet extends) |
 | `POST /payments/payment-intents` | `Idempotency-Key` header (required) |
 | `POST /ip-check` | `Idempotency-Key` header (optional, but strongly recommended — the call is billable) |
 
@@ -36,7 +36,7 @@ Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 ```
 
 <Warning>
-  The `Idempotency-Key` header is **required** for `POST /payments/payment-intents` and for mobile-rotating calls to `POST /orders/{order_id}/extend`. Requests will be rejected without it.
+  The `Idempotency-Key` header is **required** for `POST /payments/payment-intents`, and a key (header or body) is required for mobile-rotating extends and for extends paid by an external method. Requests will be rejected without it.
 </Warning>
 
 A replay with the same key returns the stored response verbatim — the same body
@@ -48,6 +48,8 @@ happened, not what would happen now.
 Sending a **different** payload with a key you have already used answers `409`
 with `error.code` of `CONFLICT`. Keys are matched against a hash of the request,
 so this is detected even when the difference is a single character.
+
+On `POST /orders/{order_id}/extend` a key belongs to one payment path: a key already used to extend from the wallet cannot start an external payment, and the reverse — both answer `409`. This is what stops one click from both charging the balance and opening a card payment.
 
 ## How long a key stays replayable
 

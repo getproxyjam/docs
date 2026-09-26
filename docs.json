@@ -91,6 +91,9 @@
             "pages": [
               "api/orders/proxy-auto-renew",
               "api/orders/proxy-extend",
+              "api/orders/proxy-extend-quote",
+              "api/orders/get-extension",
+              "api/orders/list-extensions",
               "api/orders/proxy-bandwidth",
               "api/orders/proxy-whitelist",
               "api/orders/proxy-sync",

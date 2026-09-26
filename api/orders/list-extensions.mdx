@@ -1,0 +1,29 @@
+---
+title: "List extensions"
+description: "Paid extensions of one order, newest first."
+api: "GET /orders/{order_id}/extensions"
+---
+
+Lists an order's [extensions](/api/orders/proxy-extend#extension-object), newest first — for example to offer "continue payment" for one still `waiting_payment`.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>UUID of the order.</ParamField>
+
+## Query parameters
+
+<ParamField query="status" type="string">Only extensions in this status.</ParamField>
+<ParamField query="limit" type="integer" default="50">Page size, at most `100`.</ParamField>
+<ParamField query="offset" type="integer" default="0">Rows to skip.</ParamField>
+
+## Response
+
+<ResponseField name="extensions" type="object[]">Extension objects.</ResponseField>
+<ResponseField name="total" type="integer">Matching extensions across all pages.</ResponseField>
+
+## Example
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/extensions?status=waiting_payment" \
+  -H "X-API-Key: pj_AbCdEf..."
+```

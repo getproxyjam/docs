@@ -4,14 +4,15 @@ description: "Extend the rental period of a static proxy by months, or re-bill a
 api: "POST /orders/{order_id}/extend"
 ---
 
-Charges your wallet and extends the proxy subscription at the provider level. The endpoint routes by the order's `proxy_type`: everything but mobile is extended by whole months, and mobile rotating is re-billed for one cycle of the chosen tarification. "ISP" is not a third type here — it is the name of the `residential` product.
+Extends a proxy's rental period. The endpoint routes by the order's `proxy_type`: everything but mobile is extended by whole months, and mobile rotating is re-billed for one cycle of the chosen tarification. "ISP" is not a third type here — it is the name of the `residential` product.
+
+There are two ways to pay:
+
+- **Wallet** (`payment_method` omitted or `"wallet"`) — charged from your balance and extended immediately. The response is the updated proxy (`200`).
+- **CryptoCloud, card or SBP** (`"cryptocloud"`, `"stripe"`, `"rollypay"`) — nothing is charged or extended yet. The response is an [extension](#extension-object) (`201`) with a `payment_url`; send the customer there. When the payment is confirmed, the amount is credited to the balance and the proxy is extended from it. Follow the outcome with [Get extension](/api/orders/get-extension) or the `order_update` WebSocket event.
 
 <Warning>
-  This action is billed immediately from your wallet balance. Ensure you have sufficient funds before calling this endpoint.
-</Warning>
-
-<Warning>
-  **Mobile rotating proxies:** extending re-applies the selected tarification at the provider, which **resets** any remaining time and traffic on the current cycle. It does not append. If the current cycle still has substantial time or traffic left, you may forfeit it. Extend close to expiry.
+  **Mobile rotating proxies:** extending re-applies the selected tarification at the provider, which **resets** any remaining time and traffic on the current cycle. It does not append. If the current cycle still has substantial time or traffic left, you may forfeit it. Extend close to expiry. With an external payment the new cycle starts when the payment is confirmed, not when you call this endpoint.
 </Warning>
 
 ## Path parameters
@@ -23,7 +24,7 @@ Charges your wallet and extends the proxy subscription at the provider level. Th
 ## Headers
 
 <ParamField header="Idempotency-Key" type="string">
-  Replay-safe key. **Required for mobile rotating extends.** Optional for static-proxy extends. The same key returns the cached response without re-billing; a different body with the same key returns `409 ConflictError`.
+  Replay-safe key, up to 255 characters. **Required for mobile rotating extends and for every external payment method.** Optional for static-proxy wallet extends. The same key returns the original response without charging or creating a second payment; a different body with the same key returns `409`. A key already used on the wallet path cannot be reused for an external payment, and the reverse — both return `409`. You may send the key as the `idempotency_key` body field instead; when both are sent, the header wins.
 </ParamField>
 
 ## Request body
@@ -36,26 +37,68 @@ Charges your wallet and extends the proxy subscription at the provider level. Th
   Zero-based index into the offer's `options` array. **Required for mobile rotating proxies.**
 </ParamField>
 
+<ParamField body="payment_method" type="string" default="wallet">
+  `wallet`, `cryptocloud`, `stripe` or `rollypay`. Which external methods are live for you is listed by [Extension quote](/api/orders/proxy-extend-quote). External methods are USD only. `telegram_stars` is not accepted here.
+</ParamField>
+
+<ParamField body="idempotency_key" type="string">
+  Same as the `Idempotency-Key` header, for clients that cannot set headers. Up to 255 characters.
+</ParamField>
+
 <ParamField body="payment_currency" type="string" default="USD">
   Payment currency for the extension: `USD` (default) or `STAR`. `STAR` is
   supported for mobile rotating extends only and charges the chosen
   option's Stars price — the same value the catalog shows under
-  `currency=STAR`.
+  `currency=STAR`. Only with the wallet: `STAR` together with an external `payment_method` returns `422`.
 </ParamField>
 
 <Note>
-  Provide exactly one of `months` or `tarification_index`. Sending both, or neither, returns `422 ValidationError`. Sending the wrong field for the order's proxy type returns `400` — the message identifies which field the proxy type expects.
+  Provide exactly one of `months` or `tarification_index`. Sending both, neither, or the wrong one for the order's proxy type returns `422` with a message that names the field the proxy type expects.
 </Note>
 
 ## Response
 
-For static proxies the response is the updated proxy object with the new `expires_at` — same shape as the `managed_proxy` object in [Get order](/api/orders/get-order). For mobile rotating proxies the response matches the mobile shape in Get order (the `type: "mobile"` variant) — see the example below for the full superset.
+**Wallet (`200`).** For static proxies the response is the updated proxy with the new `expires_at` — the `managed_proxy` shape from [Get order](/api/orders/get-order). For mobile rotating proxies it is the `type: "mobile"` variant from Get order.
+
+**External payment (`201`).** The response is an extension object. Branch on `object: "extension"` — the proxy shapes never carry it.
 
 Both shapes include an extend-specific field:
 
 <ResponseField name="previous_expires_at" type="string | null">
   The `expires_at` value **before** this extend call. Only populated on extend responses; `null` everywhere else. Lets clients render a before/after diff.
 </ResponseField>
+
+## Extension object
+
+<ResponseField name="object" type="string">Always `"extension"`.</ResponseField>
+<ResponseField name="id" type="string">Extension UUID.</ResponseField>
+<ResponseField name="order_id" type="string">The order being extended.</ResponseField>
+<ResponseField name="status" type="string">
+  `waiting_payment` → `paid` → `extended`, or `failed` / `needs_review`. Treat unknown values as "still in progress".
+</ResponseField>
+<ResponseField name="failure_reason" type="string | null">
+  Set with `failed` or `needs_review`: `proxy_unavailable`, `proxy_changed`, `offer_unavailable`, `price_changed`, `insufficient_funds`, `provider_error`, `internal_error`, `amount_mismatch`, `upstream_applied`.
+</ResponseField>
+<ResponseField name="payment_method" type="string">The method you chose.</ResponseField>
+<ResponseField name="payment_intent_id" type="string | null">The payment created for this extension.</ResponseField>
+<ResponseField name="payment_url" type="string | null">Where to send the customer to pay.</ResponseField>
+<ResponseField name="months" type="integer | null">Static proxies.</ResponseField>
+<ResponseField name="tarification_index" type="integer | null">Mobile rotating proxies.</ResponseField>
+<ResponseField name="currency" type="string">Always `USD`.</ResponseField>
+<ResponseField name="price" type="string">List price of the extension.</ResponseField>
+<ResponseField name="discount" type="string">The promo code of the original order, carried over (static proxies); `0.00` for mobile.</ResponseField>
+<ResponseField name="amount" type="string">`price − discount`. Credited to the balance on payment, then charged for the extension.</ResponseField>
+<ResponseField name="payment_fee" type="string">The payment method's fee.</ResponseField>
+<ResponseField name="total" type="string">`amount + payment_fee` — what the customer pays.</ResponseField>
+<ResponseField name="previous_expires_at" type="string">Expiry before the extension.</ResponseField>
+<ResponseField name="expires_at" type="string | null">New expiry, once `extended`.</ResponseField>
+<ResponseField name="created_at" type="string" />
+<ResponseField name="updated_at" type="string" />
+<ResponseField name="completed_at" type="string | null">When it reached `extended`, `failed` or `needs_review`.</ResponseField>
+
+<Note>
+  If the extension fails after payment (`failed`), the whole payment — the amount and the fee — is on the balance. Nothing is refunded to the card or wallet it came from.
+</Note>
 
 ## Example — static proxy
 
@@ -82,7 +125,12 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
 ```json Response
 {
   "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
-  "provider_proxy_id": "1836367",
+  "id": "1836367",
+  "host": "203.0.113.24",
+  "port": 31000,
+  "username": "pj_997b4450",
+  "password": "<proxy-password>",
+  "protocol": "HTTP",
   "status": "active",
   "expires_at": "2026-04-21T14:22:39Z",
   "auto_renew": true,
@@ -105,20 +153,6 @@ curl -X POST "https://api.proxyjam.com/public/v1/orders/f603a37e-ea14-41e8-9131-
   -H "Idempotency-Key: <unique-uuid>" \
   -H "Content-Type: application/json" \
   -d '{"tarification_index": 0}'
-```
-
-```python Python
-import uuid
-from proxyjam import ProxyJamClient
-
-with ProxyJamClient(api_key="pj_live_...") as proxyjam:
-    proxy = proxyjam.orders.extend(
-        "f603a37e-ea14-41e8-9131-a0bb56223b6d",
-        tarification_index=0,
-        idempotency_key=str(uuid.uuid4()),
-    )
-    print("new expiry:", proxy.expires_at)
-    print("previous:   ", proxy.previous_expires_at)
 ```
 
 ```json Response
@@ -161,5 +195,49 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
 </CodeGroup>
 
 <Note>
-  Operators can enable the `orders.mobile.extend.too_early_guard` feature flag to block mobile extends when more than 30 % of the current cycle is still remaining. The flag is off by default; when on, the API returns a `400` with a message asking the caller to extend closer to expiry.
+  The Python SDK does not send an idempotency key on `orders.extend` yet, so mobile rotating extends need a direct HTTP call as above.
+</Note>
+
+## Example — pay by card
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/extend" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Idempotency-Key: 5b1f0c1e-3a57-4d8e-9d3c-2a9d2f1e7c10" \
+  -H "Content-Type: application/json" \
+  -d '{"months": 3, "payment_method": "stripe"}'
+```
+
+```json Response (201)
+{
+  "object": "extension",
+  "id": "0c5e6a8e-2f1b-4f53-8d8a-5a2e8d4f9b31",
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "waiting_payment",
+  "failure_reason": null,
+  "payment_method": "stripe",
+  "payment_intent_id": "8b0f2d4c-6e1a-4c3b-9f7e-1d2c3b4a5e6f",
+  "payment_url": "https://checkout.stripe.com/c/pay/...",
+  "months": 3,
+  "tarification_index": null,
+  "currency": "USD",
+  "price": "30.00",
+  "discount": "6.00",
+  "amount": "24.00",
+  "payment_fee": "1.20",
+  "total": "25.20",
+  "previous_expires_at": "2026-10-01T12:00:00Z",
+  "expires_at": null,
+  "created_at": "2026-09-26T10:00:00Z",
+  "updated_at": "2026-09-26T10:00:00Z",
+  "completed_at": null
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Operators can enable the `orders.mobile.extend.too_early_guard` feature flag to block mobile extends when more than 30 % of the current cycle is still remaining. The flag is off by default; when on, the API returns a `422` with a message asking the caller to extend closer to expiry.
 </Note>

@@ -1,0 +1,68 @@
+---
+title: "Extension quote"
+description: "Price, discount and each payment method's fee for extending a proxy, before you pay."
+api: "GET /orders/{order_id}/extend/quote"
+---
+
+Returns what an extension costs and what each payment method adds on top, so a checkout screen can show the breakdown before the customer picks a method. Nothing is charged or reserved.
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="months" type="integer">
+  Months to extend, for static proxies.
+</ParamField>
+
+<ParamField query="tarification_index" type="integer">
+  Tarification to re-bill, for mobile rotating proxies.
+</ParamField>
+
+<Note>
+  Provide exactly one of `months` or `tarification_index`. The same errors as [Extend proxy](/api/orders/proxy-extend) apply — a proxy that cannot be extended cannot be quoted.
+</Note>
+
+## Response
+
+<ResponseField name="order_id" type="string" />
+<ResponseField name="months" type="integer | null" />
+<ResponseField name="tarification_index" type="integer | null" />
+<ResponseField name="currency" type="string" />
+<ResponseField name="price" type="string">List price.</ResponseField>
+<ResponseField name="discount" type="string">The original order's promo code, carried over (static proxies).</ResponseField>
+<ResponseField name="amount" type="string">`price − discount`.</ResponseField>
+<ResponseField name="methods" type="object[]">
+  One entry per payment method you may use: `payment_method`, `name`, `payment_fee`, `total` (`amount + payment_fee`), `available`, and `unavailable_reason` — `amount_below_minimum`, `amount_above_maximum` or `currency_not_supported` when `available` is `false`. The wallet has no fee and no minimum.
+</ResponseField>
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/extend/quote?months=3" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```json Response
+{
+  "order_id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "months": 3,
+  "tarification_index": null,
+  "currency": "USD",
+  "price": "30.00",
+  "discount": "6.00",
+  "amount": "24.00",
+  "methods": [
+    {"payment_method": "wallet", "name": "Wallet", "payment_fee": "0.00", "total": "24.00", "available": true, "unavailable_reason": null},
+    {"payment_method": "cryptocloud", "name": "CryptoCloud", "payment_fee": "0.46", "total": "24.46", "available": true, "unavailable_reason": null},
+    {"payment_method": "stripe", "name": "Card", "payment_fee": "1.20", "total": "25.20", "available": true, "unavailable_reason": null}
+  ]
+}
+```
+
+</CodeGroup>
