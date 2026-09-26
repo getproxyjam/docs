@@ -97,7 +97,7 @@ Both shapes include an extend-specific field:
 <ResponseField name="completed_at" type="string | null">When it reached `extended`, `failed` or `needs_review`.</ResponseField>
 
 <Note>
-  If the extension fails after payment (`failed`), the whole payment — the amount and the fee — is on the balance. Nothing is refunded to the card or wallet it came from.
+  The payment is credited to the balance when it is confirmed. If the extension then fails (`failed`), the fee is credited back too — except with `insufficient_funds`: the balance had already been spent in the meantime, so only the fee comes back. Nothing is refunded to the card or wallet it came from.
 </Note>
 
 ## Example — static proxy

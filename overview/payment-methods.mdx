@@ -70,7 +70,7 @@ Each provider advertises a `commission_percentage`. It is a surcharge on top of 
 
 `POST /orders/{order_id}/extend` takes the same `payment_method` values. With an external method the payment goes **through the balance**: the confirmed amount is credited to the wallet, and the extension is charged from it straight away. Your transaction history therefore shows a top-up followed by the extension charge.
 
-If the extension cannot be completed after the payment — the proxy was released, the tariff changed, the provider refused — the whole payment, including the method's fee, stays on the balance. See [Extend proxy](/api/orders/proxy-extend).
+If the extension cannot be completed after the payment — the proxy was released, the tariff changed, the provider refused — the amount was already credited to the balance when the payment was confirmed, and the fee is credited back too. With `insufficient_funds` the balance had already been spent in the meantime, so only the fee comes back. See [Extend proxy](/api/orders/proxy-extend).
 
 ## Payment flow diagram
 
