@@ -1,0 +1,255 @@
+---
+title: "Support and troubleshooting"
+sidebarTitle: "Support"
+description: "Contact support for ProxyJam Connector, fix the problems it reports, and see what each browser cannot do."
+---
+
+This page covers the ProxyJam Connector browser extension: how to reach support, how to fix the problems the extension tells you about, and the limits each browser puts on it. Every tab in the extension's options page also links to its own guide on this site, under **How this tab works**.
+
+<Note>
+  The extension is a separate product from the ProxyJam proxy service. It needs no account and works with proxies from anywhere. Its optional [ProxyJam tab](/extension/proxyjam-account) can sign in to a ProxyJam account, but that account, its balance, and its orders belong to the service.
+</Note>
+
+## Contact
+
+Email **[support@proxyjam.com](mailto:support@proxyjam.com)** with questions, bug reports, and feature requests.
+
+### What to include
+
+- **The extension version.** Open the options page — the gear icon at the top of the popup, or **Manage profiles & rules →** at the bottom — and read the number after *ProxyJam Connector* at the foot of the page.
+- **Your browser and its version.** Chrome, Edge, or Firefox, with the exact version number. If the problem shows up in only one of them, say which.
+- **Steps to reproduce.** What you did, what you expected, and what happened instead. Mention the mode you were in — Direct, Auto, or a profile — and what the toolbar badge showed.
+- **The console log.** See [Collecting a log](#collecting-a-log).
+- **Optionally, your configuration without passwords.** Useful when the problem involves profiles, rules, or the bypass list. See [Sharing your configuration](#sharing-your-configuration).
+
+### Collecting a log
+
+The extension writes to the console of its own background script, not to the console of the page you are browsing.
+
+<Steps>
+  <Step title="Turn on Debug logging">
+    In the options page, open **Settings** and turn on **Debug logging** in the **Behavior** card. Warnings and errors are written either way; the setting also lets the extension's debug-level messages through.
+  </Step>
+
+  <Step title="Open the background console">
+    - **Chrome:** go to `chrome://extensions`, turn on **Developer mode**, and click **service worker** on the ProxyJam Connector card.
+    - **Edge:** the same, at `edge://extensions`.
+    - **Firefox:** go to `about:debugging#/runtime/this-firefox` and click **Inspect** next to ProxyJam Connector.
+  </Step>
+
+  <Step title="Reproduce the problem and copy the output">
+    Every line the extension writes starts with `[ProxyJam:`. Copy those lines into your email.
+  </Step>
+</Steps>
+
+<Note>
+  The logger redacts before anything is printed: a field named as a password, username, API key, token, or authorization header is replaced with `••••`, however deeply it is nested. Other values — a hostname, or the email address of a signed-in ProxyJam account — are not masked, so read the lines before you send them.
+</Note>
+
+### Sharing your configuration
+
+<Steps>
+  <Step title="Open Import / Export">
+    In the options page, open the **Import / Export** tab.
+  </Step>
+
+  <Step title="Keep both toggles off">
+    Leave **Include passwords** off, which is how the tab opens, and leave **Encrypt with a password** off too. An encrypted export always carries usernames and passwords inside it, so it is never a password-free file.
+  </Step>
+
+  <Step title="Export as ProxyJam JSON">
+    Choose **ProxyJam JSON** and press **Export**. The file downloads as `proxyjam-connector.json`, with every username and password removed.
+  </Step>
+</Steps>
+
+<Warning>
+  A file without passwords still contains your profile names and notes, proxy hosts and ports, rules, and bypass list. Send it only if you are comfortable sharing those.
+</Warning>
+
+## Troubleshooting
+
+### The proxy stops working after a browser restart
+
+It should not. The extension rebuilds the browser's proxy configuration from its stored settings every time its background script starts: at browser startup, after an install or update, and whenever the browser restarts the extension's suspended background script. The mode you chose is part of what is stored.
+
+If the proxy is still not in use after a restart:
+
+<Steps>
+  <Step title="Re-apply the configuration">
+    Open the popup, choose **Direct (no proxy)**, then choose your profile or **Auto (rules)** again. Every switch re-applies the whole configuration from storage.
+  </Step>
+
+  <Step title="Look at the toolbar badge">
+    A red **!** or an amber **AUTH** on the extension's icon points to one of the problems below.
+  </Step>
+
+  <Step title="Tell us">
+    If neither helps, email support with your browser version and a [log](#collecting-a-log).
+  </Step>
+</Steps>
+
+### The toolbar badge shows a red exclamation mark
+
+This appears on Chrome and Edge only. The **!** badge means the last attempt to apply your configuration failed: the browser refused the proxy setting, or no usable proxy could be built from the profile you selected.
+
+Choose **Direct (no proxy)** in the popup, then select the profile again. The badge returns to normal as soon as an attempt succeeds. If it keeps coming back, email support with the steps that lead to it.
+
+### An authenticated proxy does not connect on Chrome or Edge
+
+On Chrome and Edge the extension answers a proxy's login challenge itself, with the username and password stored on the profile whose host and port match that proxy. Two things have to be true:
+
+- **The Network access permission is granted.** Without it the extension does not listen for the challenge at all. It is not requested on install: open **Settings**, find **Network access permission** in the **Network checks** card, and press **Grant**.
+- **The proxy accepts the stored credentials.** If it rejects them twice for the same request, the extension stops retrying, cancels that request, and shows **AUTH** on the toolbar badge.
+
+To replace stored credentials, edit the profile on the **Profiles** tab and type the new username and password. Both fields are empty when you open a profile for editing, even if it has credentials, and a field you leave blank keeps its stored value. Once the credentials are right, switch to **Direct (no proxy)** and back to clear the badge.
+
+### SOCKS5 username and password are ignored on Chrome
+
+Chrome's proxy API accepts a SOCKS5 server but has no way to hand it a username and password, and Chrome itself does not support SOCKS5 authentication ([Chromium issue 40323993](https://issues.chromium.org/issues/40323993)). The extension keeps the credentials you enter, but the browser never uses them, and the profile says so: *Chrome ignores SOCKS5 username/password.*
+
+What works instead:
+
+- **Authorize by IP address.** Add your IP address to the proxy's allowlist. For a proxy bought from ProxyJam, that list is **Allowed IP addresses** under [Managing a proxy](/extension/proxyjam-account#managing-a-proxy).
+- **Use HTTP, if the proxy offers it.** A profile with the `http` scheme and the same credentials authenticates on Chrome — see [the entry above](#an-authenticated-proxy-does-not-connect-on-chrome-or-edge).
+- **Use Firefox for that profile.** Firefox passes SOCKS5 credentials to the proxy.
+
+A second warning, *Chrome always resolves DNS through the SOCKS5 proxy*, appears when **Remote DNS** is off on a SOCKS5 profile. Chrome resolves hostnames at the SOCKS5 proxy regardless, so the toggle has no effect there.
+
+### A URL or path rule does not match HTTPS pages on Chrome
+
+For HTTPS requests, Chrome strips the path from the URL before handing it to the PAC script. Six condition types depend on that path: **URL wildcard**, **Regex**, **Exact URL**, **URL prefix**, **URL suffix**, and **URL contains**. On Chrome and Edge they see only the host of an HTTPS request, while plain HTTP requests still match in full. The Rules page shows a warning whenever one of your rules uses these types.
+
+Rewrite the rule with a host-based condition — **Exact domain**, **Domain + subdomains**, or **Host wildcard** — which match the same way on every browser. Or use Firefox, which checks each request against its full URL. Details: [Path matching on HTTPS in Chrome](/extension/auto-switch-rules#path-matching-on-https-in-chrome).
+
+### Auto is greyed out in the popup
+
+**Auto (rules)** stays disabled, marked *no rules yet*, until at least one rule exists. Add one on the **Rules** tab and press **Save changes**.
+
+Rules inside a disabled [rule set](/extension/rule-sets) still count, so Auto can be selectable while every rule is switched off. In that case no rule matches, and everything not on the bypass list goes to the fallback.
+
+### A health check switched you to another profile
+
+The popup shows a notice beginning *Health check failed — switched from*, naming both profiles. That only happens when all of these are true: **Periodic health check** and **Auto-failover** are both on, you are using a single profile, and that profile has a **Failover proxy** set.
+
+The check fetches your IP address from `api.ipify.org` through the active proxy. A timeout or an HTTP error on that one request counts as a failure, even if other sites still load through the same proxy.
+
+<Steps>
+  <Step title="Dismiss the notice">
+    Press **Dismiss** in the popup once you have read it.
+  </Step>
+
+  <Step title="Test the original proxy">
+    On the **Checker** tab, press **Measure** on the original profile. It briefly routes all traffic through that proxy, times a request, and switches back.
+  </Step>
+
+  <Step title="Switch back">
+    Choose the original profile in the popup. If it still fails and failover is still on, the next scheduled check switches you again.
+  </Step>
+</Steps>
+
+To stop the automatic switch, turn off **Auto-failover** in the **Health check** card of **Settings**, or set the profile's **Failover proxy** to **None**. **Check now**, in the same card, runs a check straight away. Full behaviour: [Health checks and failover](/extension/health-checks).
+
+### Checker fields show n/a
+
+Hover over **n/a** to see why. The usual reasons:
+
+- *Testing an inactive proxy requires switching to it.* **Check** tests only the profile selected in the popup, and in Direct or Auto mode there is none. Select the profile first, or press **Measure**, which switches to it briefly and then restores your routing.
+- *Enable the external IP check to test this proxy.* Turn on **External IP check** under **Settings → Network checks**. Reachability, IP, and latency all depend on it.
+- *Geo lookup is off* or *WebRTC leak test is off.* Turn on that toggle in the same card.
+- The DNS field always reports unavailable. See [DNS-leak test](/extension/dns-leak) for why.
+
+The IP and geo lookups also need the **Network access permission**, granted in the same card. A field showing a red **error** tried and failed; hover over it for the reason. More: [Checker](/extension/checker).
+
+### An import skipped or rejected entries
+
+Every import ends with a report under the **Import** button. Input never disappears silently: anything that did not come across is counted, with the first three reasons printed as short codes.
+
+**Skipped entries** could not be read as a proxy:
+
+| Code | Meaning |
+| --- | --- |
+| `invalid-host`, `invalid-port`, `invalid-scheme` | The entry's host, port, or scheme is missing or unusable. Fix it in the file and import that entry again. |
+| `invalid-json` | The format was set to **ProxyJam JSON**, but the content does not parse as JSON. On **Auto-detect**, unparseable JSON is read as plain text instead, and its lines are skipped as invalid entries. |
+| `unsupported-` and a profile type | A profile from another proxy extension that is not a single fixed proxy, such as a switch or PAC profile. Only fixed proxies become profiles. |
+
+**Skipped rules** could not be expressed or attached to a profile:
+
+| Code | Meaning |
+| --- | --- |
+| `exclude-not-supported` | An exclude pattern from another proxy extension. Auto-switch rules have no exclude form; add the host to the [bypass list](/extension/settings#bypass-list) if it should always go direct. |
+| `unsupported-pattern-type` | A pattern kind other than wildcard, regex, or keyword. |
+| `ambiguous-profile-name` | Rules find their profile by name, and more than one profile has that name, counting profiles that were there before the import. |
+| `unresolved-profile` | No profile has the name the rule points to. |
+| `empty`, `too-long`, `invalid-regex`, `invalid-host-pattern` | The pattern failed the same checks as a rule you type on the Rules page. |
+
+<Warning>
+  Importing the same file twice does not merge. It creates every profile a second time, and any rules in the second import are then skipped as `ambiguous-profile-name`, because each name now matches two profiles. Sort the **Profiles** tab by **Newest** and delete the extra copies; the rules from the first import still point at the originals.
+</Warning>
+
+For encrypted exports: *Wrong password, or the file was modified* covers both cases, because the two cannot be told apart. The file chooser is set to `.json`, `.txt`, `.csv`, and `.bak` files; if it will not let you pick a `.pjenc` export, open that file in a text editor and paste its contents into the box instead. More: [Import / Export](/extension/import-export).
+
+### A Firefox container ignores your rules
+
+A container with a proxy assigned sends everything through that proxy, ahead of the global mode and your rules. Only the bypass list, which always includes localhost and private ranges, comes before it. To make a container follow the mode and rules again, set it to **Use global mode** on the **Containers** tab. More: [Per-container proxies](/extension/containers).
+
+The Containers tab exists only in Firefox; the Chrome and Edge builds do not have one. If the tab says the browser does not expose container information, the extension could not reach Firefox's container API — it needs Firefox 128 or later with Container Tabs available.
+
+### The extension could not read its own stored data
+
+A message ending in *the extension could not read its own stored data* means the extension refused to save anything. It does that when the stored data could not be read, or was written by a newer version of the extension than the one installed. Rather than overwrite data it cannot trust, it declines every change and, until the data can be read again, shows empty lists and routes traffic directly. The stored data itself is left as it was.
+
+- **Do not remove and reinstall the extension.** Removing an extension deletes its local storage, including the data this state is protecting.
+- **Update the extension and restart the browser.**
+- **If the message stays, email support** with a [log](#collecting-a-log). The relevant line reads `read failed; using defaults` or `migration failed; using defaults without overwriting`.
+
+## Known platform limitations
+
+The extension never fakes a capability: where a browser cannot do something, the interface says so. It runs on Chrome 116 or later and Firefox 128 or later; Edge installs the same package as Chrome.
+
+| Capability | Chrome and Edge | Firefox |
+| --- | --- | --- |
+| Switching, auto-switch rules, bypass list | Yes, with rules compiled to a PAC script | Yes, resolved per request |
+| SOCKS5 username and password | No. Chrome does not support SOCKS5 authentication ([Chromium issue 40323993](https://issues.chromium.org/issues/40323993)), so credentials are stored but ignored | Yes |
+| URL and path rules on HTTPS | Hostname only. Chrome strips the path before the PAC script sees it | Full URL |
+| Per-container proxies | No. Chrome exposes no container information to extensions, so there is no Containers tab | Yes |
+| Checking a profile you are not using | Shown as `n/a` by **Check**; **Measure** switches to it briefly | Shown as `n/a` by **Check**; **Measure** switches to it briefly |
+| WebRTC leak test | Yes | Yes |
+| [DNS-leak test](/extension/dns-leak) | Reported as unavailable | Reported as unavailable |
+
+## Frequently asked questions
+
+### Why are my SOCKS5 username and password ignored on Chrome?
+
+Chrome's proxy API has no way to pass them to a SOCKS5 proxy. The extension stores them, the browser does not use them, and the profile shows a warning. What to do instead: [SOCKS5 username and password are ignored on Chrome](#socks5-username-and-password-are-ignored-on-chrome).
+
+### My URL or path rule does not match on HTTPS in Chrome
+
+Chrome strips the path from an HTTPS request before the PAC script sees it, so no rule can match on it. Use a host-based condition, or run the profile in Firefox, which evaluates the full URL. The Rules page warns you while any rule depends on the path. Details: [A URL or path rule does not match HTTPS pages on Chrome](#a-url-or-path-rule-does-not-match-https-pages-on-chrome).
+
+### Does anything get sent to a server?
+
+Nothing until you turn something on:
+
+- The [network checks](/extension/settings#network-checks) — External IP, Geo / ASN, and WebRTC — are off by default, and each one names the host it contacts.
+- The [health check](/extension/health-checks) is off by default. It reuses the External IP request, on the interval you choose.
+- The [ProxyJam tab](/extension/proxyjam-account) sends nothing until you sign in, and asks for access to `api.proxyjam.com` at that moment.
+
+There is no telemetry and no analytics. The [privacy policy](https://proxyjam.com/extension-privacy-policy) lists every endpoint.
+
+### Where is my data stored, and how do I move it?
+
+In your browser's local extension storage, on your own device. Nothing is synced. To back it up or move it to another browser, export ProxyJam JSON from the **Import / Export** tab and import the file on the other side. The file carries your profiles, rules, fallback, and bypass list; settings, rule sets, and container assignments are not part of it.
+
+Exports leave out usernames and passwords unless you turn on **Include passwords**, and **Encrypt with a password** protects a file that contains them. Details: [Import / Export](/extension/import-export).
+
+### My proxy stopped working after a browser restart
+
+It should not: the extension re-applies your configuration every time its background script starts. What to check when it happens anyway: [The proxy stops working after a browser restart](#the-proxy-stops-working-after-a-browser-restart).
+
+### Can I import from FoxyProxy or SwitchyOmega?
+
+Yes. Leave the format on **Auto-detect**: it recognises their JSON backups by structure, and the report names the source as *another proxy extension*. Proxies come across as profiles and their URL patterns as auto-switch rules. Exclude patterns, and profiles that are not a single fixed proxy, are listed in the report instead of being approximated. Reading that report: [An import skipped or rejected entries](#an-import-skipped-or-rejected-entries).
+
+## Reporting a security issue
+
+Email [support@proxyjam.com](mailto:support@proxyjam.com) rather than posting publicly. Include the extension version, your browser and its version, and the steps to reproduce.
