@@ -45,6 +45,7 @@
               "overview/introduction",
               "overview/quickstart",
               "overview/authentication",
+              "overview/oauth",
               "overview/python-sdk"
             ]
           },
