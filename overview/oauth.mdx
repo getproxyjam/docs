@@ -131,10 +131,13 @@ must match a registered one exactly, apart from the loopback port.
    warning and is never marked as verified.
 3. The browser comes back to your redirect URI with `code`, `state` and
    `iss=https://proxyjam.com`, or with `error=access_denied` if they declined.
-   A request that is wrong in itself (an unknown client, a redirect URI that
-   is not registered, no PKCE challenge) ends on a ProxyJam error page. Only a
-   verified app or a loopback redirect gets such an error back as `error=` on
-   its redirect URI.
+   An unknown client or a redirect URI that is not registered always ends on
+   a ProxyJam error page, whatever the client — redirecting that kind of
+   error back would make this an open redirector. Any other request error
+   (no PKCE challenge, a `resource` this server does not serve, …) ends on
+   a ProxyJam error page too, unless yours is a verified app or a loopback
+   redirect, in which case it comes back as `error=` on your redirect URI
+   instead.
 4. Exchange the code within 60 seconds:
 
    ```bash
@@ -171,15 +174,15 @@ must match a registered one exactly, apart from the loopback port.
 | `wallet:read` | always, with the other reads | wallets, balances and transactions | `list_my_wallets`, `get_wallet_balance`, `list_wallet_transactions`, `get_transaction` |
 | `orders:write` | **off**: a separate *Allow spending from my wallet* box | spending, and every change to a paid service | `create_proxy_order`, `extend_proxy_period`, `buy_proxy_bandwidth`, `set_auto_renew`, `set_proxy_whitelist`, `change_proxy_protocol`, `sync_proxy_state` |
 
-- **Reading is granted as one block.** `catalog:read`, `account:read`,
-  `orders:read` and `wallet:read` arrive together on every connection; there is
-  no way to grant one of them and withhold another.
-- **Spending is opt-in.** The MCP server's challenge asks for all five scopes,
-  so every sign-in offers the spending box, and it starts unticked.
+- **Every read scope the client asks for is granted together.** The person
+  cannot withhold one and keep another.
+- **The spending box appears when the client asks for `orders:write`.**
+  The MCP server's challenge does, so every sign-in through it offers the
+  box; it starts unticked.
 - **Each approval replaces the scopes.** Approving again without the box
-  removes `orders:write` from the connection. All connections of one app to one
-  account share their scopes, and existing tokens pick up a change within 5
-  minutes.
+  removes `orders:write` from the connection. All connections of one app to
+  one account on the same MCP address share their scopes, and existing
+  tokens pick up a change within 5 minutes.
 - **Never granted:** API-key management, email and password changes, account
   deletion, webhook management and wallet top-ups. No OAuth token reaches them,
   whatever it asks for.
@@ -292,7 +295,8 @@ A claim attaches the key to a person's account, with that person's consent.
    **Show my code** and sees a 6-digit code, valid for 10 minutes and 5 tries.
    Opening the link again gives a fresh code. If the address already has a
    ProxyJam account, the page shows the code only to someone signed in to that
-   account, and it offers **This wasn't me**, which cancels the claim.
+   account. Every claim page offers **This wasn't me**, which cancels the
+   claim.
 3. The person reads the code to the agent, which completes the claim:
 
    ```bash

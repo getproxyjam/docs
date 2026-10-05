@@ -68,7 +68,7 @@ sign-in yourself. Add `--scope user` to use it in every project.
 
 In ChatGPT's settings, create a custom connector (developer mode), enter
 `https://proxyjam.com/mcp` as its URL and choose **OAuth** authentication.
-ChatGPT registers itself and opens the ProxyJam sign-in.
+ChatGPT identifies itself and opens the ProxyJam sign-in.
 
 ### Cursor
 
@@ -509,8 +509,8 @@ Use a fresh key per **logical** operation:
 
 The MCP server intentionally does **not** expose:
 
-- `/users/*` and `/auth/*` — account management requires a dashboard
-  session.
+- `/users/*` and `/auth/*` — account management needs a signed-in session
+  (a token from sign-in), not a key or an OAuth connection.
 - `/payments/*` — payment intents are user-initiated through the
   dashboard.
 - `/api-keys/*` — you cannot manage keys through a key (security).
@@ -537,6 +537,13 @@ approved without **Allow spending from my wallet**. Reconnect and tick it
 **`This API key cannot spend`**, or `HTTP 403` with
 `INSUFFICIENT_SCOPE` — the key is an agent-registered key, which only reads.
 Use a dashboard API key or sign in.
+
+**A read tool refuses an agent-registered key** with "This tool needs the
+`{scope}` scope. This API key does not have it. Claim the key with the
+claim_token you received at registration, or use a dashboard API key." — an
+unclaimed key only holds `catalog:read`, so `list_my_orders` and the other
+read tools are out of reach until the person [claims
+it](/overview/oauth#agent-registration).
 
 **`HTTP 401 Invalid API key`** — the key is wrong, revoked, or
 expired. Generate a new one via the dashboard.
