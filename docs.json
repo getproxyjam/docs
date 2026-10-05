@@ -135,7 +135,7 @@
           {
             "group": "MCP",
             "pages": [
-              "mcp"
+              "mcp-server"
             ]
           }
         ]
@@ -167,7 +167,7 @@
   "redirects": [
     {
       "source": "/api/mcp",
-      "destination": "/mcp"
+      "destination": "/mcp-server"
     }
   ],
   "footer": {
