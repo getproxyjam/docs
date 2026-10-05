@@ -126,11 +126,16 @@
               "api/ip-check/list-checks",
               "api/ip-check/get-check"
             ]
-          },
+          }
+        ]
+      },
+      {
+        "tab": "MCP server",
+        "groups": [
           {
             "group": "MCP",
             "pages": [
-              "api/mcp"
+              "mcp"
             ]
           }
         ]
@@ -158,6 +163,12 @@
       }
     ]
   },
+  "redirects": [
+    {
+      "source": "/api/mcp",
+      "destination": "/mcp"
+    }
+  ],
   "footer": {
     "socials": {}
   }
