@@ -9,6 +9,14 @@ All requests to the ProxyJam API are authenticated with an API key. Pass the key
 X-API-Key: pj_AbCdEf...
 ```
 
+The same key is also accepted as `Authorization: Bearer pj_AbCdEf...`.
+
+<Note>
+  MCP clients such as claude.ai, Claude Code and ChatGPT can sign in with your
+  ProxyJam account instead of using a key. See [OAuth and agent
+  registration](/overview/oauth).
+</Note>
+
 ## Getting your API key
 
 You can generate and manage API keys in your [personal account](https://app.proxyjam.com/apikey).
@@ -40,7 +48,7 @@ API keys work on all product endpoints:
 The following endpoints **do not accept API keys** and require direct user authentication:
 
 - `/users/*` — account and authentication management
-- `/auth/*` — OAuth flows
+- `/auth/*` — Google, Apple and GitHub sign-in
 - `/payments/*` — payment intents and providers
 - `/notifications/*` — notification preferences
 

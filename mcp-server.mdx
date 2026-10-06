@@ -1,33 +1,142 @@
 ---
 title: "MCP Server"
-description: "Use ProxyJam from Claude, OpenAI agents, or any MCP client — without writing HTTP code."
+description: "Use ProxyJam from Claude, ChatGPT, Cursor, OpenAI agents, or any MCP client — sign in with your ProxyJam account or send an API key."
 ---
 
 The MCP server is a Model Context Protocol façade over the public API.
-The catalog, order and wallet actions available to an `X-API-Key` holder
-are exposed as 16 MCP **tools** — so LLM agents can list catalog offers,
-place orders, manage proxies, and inspect wallet balances directly,
-without you hand-writing HTTP calls.
+The catalog, order and wallet actions are exposed as 16 MCP **tools**, so
+LLM agents can list catalog offers, place orders, manage proxies and
+inspect wallet balances directly, without you hand-writing HTTP calls.
 
-The server is a thin proxy in front of `/public/v1`: same auth model,
-same idempotency, same rate limits.
+The server is a thin proxy in front of `/public/v1`: same idempotency, same
+rate limits, and the same scopes enforced again by the API.
 
 ```
-Endpoint:   https://mcp.proxyjam.com/mcp
+Endpoint:   https://proxyjam.com/mcp
 Transport:  Streamable HTTP
-Auth:       X-API-Key header on every request
+Auth:       OAuth sign-in (most clients), or an X-API-Key header
 ```
 
 <Note>
-  The endpoint is the `/mcp` path, not the bare host: `https://mcp.proxyjam.com/`
-  on its own returns `404`.
+  Type the URL exactly as shown, with no trailing slash. `https://mcp.proxyjam.com/mcp`
+  is the same server and keeps working as the direct address, but a
+  connection signed in on one host does not carry over to the other.
 </Note>
 
-## Get an API key
+## Connect with sign-in
 
-Generate one in your dashboard → API Keys, then keep the raw value
-safe (it is shown only once). See
-[Authentication](/overview/authentication) for the full flow.
+Clients that offer **Sign in** for a remote MCP server connect with just the
+URL — no API key copied anywhere. A client that connects with no credential
+gets `401 Unauthorized`, and clients that support MCP authorization start
+the sign-in themselves. See [OAuth and agent registration](/overview/oauth)
+for the protocol underneath.
+
+On the consent screen:
+
+- **Reading is granted as one block:** the catalog, your account details,
+  your orders (**including proxy logins and passwords**), and your wallet
+  balances and transactions.
+- **Spending is off by default.** Tick **Allow spending from my wallet**
+  only if you want the assistant to place orders, extend proxies, buy
+  bandwidth, or change a proxy's settings. Paid actions still preview first
+  and charge only after you confirm.
+
+### claude.ai and Claude Desktop
+
+They share one list of connectors.
+
+1. In Claude, open the Connectors settings and add a custom connector.
+2. Name it ProxyJam and paste `https://proxyjam.com/mcp` as the server address.
+3. Connect, sign in to ProxyJam and approve.
+
+A connector added on claude.ai is also available in Claude Desktop and the
+Claude mobile apps signed in to the same account.
+
+### Claude Code
+
+```bash
+claude mcp add --transport http proxyjam https://proxyjam.com/mcp
+```
+
+Then type `/mcp` in Claude Code, pick `proxyjam` and choose
+**Authenticate**. Your browser opens the ProxyJam consent screen; Claude
+Code gets the result on a local address, so the screen warns that access
+goes to an app on your computer. Approve only if you just started the
+sign-in yourself. Add `--scope user` to use it in every project.
+
+### ChatGPT
+
+In ChatGPT's settings, create a custom connector (developer mode), enter
+`https://proxyjam.com/mcp` as its URL and choose **OAuth** authentication.
+ChatGPT identifies itself and opens the ProxyJam sign-in.
+
+### Cursor
+
+`~/.cursor/mcp.json`, or `.cursor/mcp.json` in a project. Cursor asks you to
+sign in when it first connects.
+
+```json
+{
+  "mcpServers": {
+    "proxyjam": {
+      "url": "https://proxyjam.com/mcp"
+    }
+  }
+}
+```
+
+### Codex CLI
+
+The second command opens your browser to sign in.
+
+```bash
+codex mcp add proxyjam --url https://proxyjam.com/mcp
+codex mcp login proxyjam
+```
+
+### Gemini CLI
+
+```bash
+gemini mcp add --transport http proxyjam https://proxyjam.com/mcp
+```
+
+Then type `/mcp auth proxyjam` in Gemini CLI to sign in.
+
+### Allow spending later
+
+Each approval replaces the previous one, so to turn spending on (or off),
+reconnect with the box set the way you want:
+
+- **claude.ai / Claude Desktop:** in **Settings → Connectors**, disconnect
+  ProxyJam and connect it again.
+- **Claude Code:** `/mcp` → `proxyjam` → **Re-authenticate**.
+- **ChatGPT:** reconnect the connector.
+- **Cursor, Codex CLI, Gemini CLI:** sign in again the same way you
+  connected.
+
+Access tokens last 15 minutes and the client refreshes them on its own;
+your granted scopes don't change until you reconnect.
+
+A tool that needs spending while it is off returns: *This tool needs the
+`orders:write` scope. Spending is not enabled for this connection. Reconnect
+ProxyJam and tick "Allow spending from my wallet".*
+
+### See and revoke connections
+
+Every connection is listed under **Settings → Connected apps** in your
+[dashboard](https://app.proxyjam.com/settings), with its scopes and last
+use. Revoking one stops it within 5 minutes, while your other connections
+keep working. Changing your password or signing out everywhere revokes all
+of them. Details: [OAuth and agent registration](/overview/oauth).
+
+## Connect with an API key
+
+For clients that cannot sign in, or for scripts. An API key has the full
+access of your account, spending included.
+
+Generate one in your dashboard → API Keys, then keep the raw value safe —
+it is shown only once. See [Authentication](/overview/authentication) for
+the full flow.
 
 ```bash
 curl -X POST https://api.proxyjam.com/public/v1/api-keys \
@@ -35,27 +144,25 @@ curl -X POST https://api.proxyjam.com/public/v1/api-keys \
   -d '{"name": "my-mcp-client"}'
 ```
 
-## Connect
+Send it as `X-API-Key: pj_…` (or `Authorization: Bearer pj_…`) on every
+request.
 
-### Claude Code
+<Warning>
+  A dashboard API key has no narrower permissions: it reads **and** spends.
+  Prefer signing in where your client supports it, and give any key an
+  agent uses an expiry date.
+</Warning>
 
-```bash
-claude mcp add --transport http proxyjam \
-  https://mcp.proxyjam.com/mcp \
-  --header "X-API-Key: pj_..."
-```
+### Claude with a key
 
-Then in a Claude Code session: `/mcp` to see registered servers, or
-just ask Claude something like *"list my proxy orders"* — it will
-discover and call the right tool.
+Add the custom connector as above (`https://proxyjam.com/mcp`), but instead
+of signing in, open **Request headers**, add a header named `X-API-Key`
+with your key, and connect.
 
-### Claude Desktop
-
-Claude Desktop's config file launches local (stdio) servers only, and its
-custom-connector dialog has no field for a request header. Bridge to the
-remote endpoint with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote)
-(needs Node.js). Edit `claude_desktop_config.json`
-(macOS: `~/Library/Application Support/Claude/`,
+If your version of Claude Desktop has no Request headers field, bridge to
+the remote endpoint with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote)
+instead (needs Node.js; this fallback is for Claude Desktop only). Edit
+`claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`,
 Windows: `%APPDATA%\Claude\`):
 
 ```json
@@ -66,7 +173,7 @@ Windows: `%APPDATA%\Claude\`):
       "args": [
         "-y",
         "mcp-remote",
-        "https://mcp.proxyjam.com/mcp",
+        "https://proxyjam.com/mcp",
         "--header",
         "X-API-Key:${PROXYJAM_API_KEY}"
       ],
@@ -82,7 +189,45 @@ The key goes through `env` rather than straight into `args` so the header
 has no space in it — some platforms split arguments on spaces. Restart
 Claude Desktop; the ProxyJam tools appear in the tools menu.
 
+### Claude Code with a key
+
+```bash
+claude mcp add --transport http proxyjam \
+  https://proxyjam.com/mcp \
+  --header "X-API-Key: pj_..."
+```
+
+Then `/mcp` to see registered servers, or just ask Claude something like
+*"list my proxy orders"* — it will discover and call the right tool.
+
+### VS Code
+
+`.vscode/mcp.json`, with an API key. VS Code asks for the key once and stores
+it securely.
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "proxyjam-api-key",
+      "description": "ProxyJam API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "proxyjam": {
+      "type": "http",
+      "url": "https://proxyjam.com/mcp",
+      "headers": { "X-API-Key": "${input:proxyjam-api-key}" }
+    }
+  }
+}
+```
+
 ### OpenAI Agents SDK
+
+With an API key.
 
 ```python
 from agents import Agent
@@ -91,31 +236,40 @@ from agents.mcp import MCPServerStreamableHttp
 server = MCPServerStreamableHttp(
     name="proxyjam",
     params={
-        "url": "https://mcp.proxyjam.com/mcp",
+        "url": "https://proxyjam.com/mcp",
         "headers": {"X-API-Key": "pj_..."},
     },
 )
 
 agent = Agent(
     name="ProxyJamAssistant",
-    instructions="Help the user manage their ProxyJam proxies.",
+    instructions="Help the user manage their ProxyJam proxies. "
+                 "Never confirm a purchase without the user's yes.",
     mcp_servers=[server],
 )
 ```
 
 ### Generic FastMCP client (Python)
 
+`auth="oauth"` opens your browser to sign in; pass
+`headers={"X-API-Key": "pj_..."}` instead to use a key.
+
 ```python
 from fastmcp import Client
 
-async with Client(
-    "https://mcp.proxyjam.com/mcp",
-    headers={"X-API-Key": "pj_..."},
-) as client:
+async with Client("https://proxyjam.com/mcp", auth="oauth") as client:
     tools = await client.list_tools()
     result = await client.call_tool("list_offers", {"kind": "residential"})
     print(result.content[0].text)
 ```
+
+### Agents without an account
+
+An agent with no account behind it can also register a key of its own that
+only reads the catalog, then ask a person to claim it into their account
+with an emailed code. It never spends. Full steps: [Agent
+registration](/overview/oauth#agent-registration) (machine-readable
+summary: [auth.md](https://proxyjam.com/auth.md)).
 
 ## Tool catalog
 
@@ -128,6 +282,19 @@ async with Client(
   typically a UUIDv4) so retries replay the stored answer instead of
   double-charging.
 </Info>
+
+When you signed in, each tool needs one scope:
+
+| Scope | Tools |
+| --- | --- |
+| `catalog:read` | `list_offers` |
+| `orders:read` | `list_my_orders`, `get_order`, `get_my_traffic_summary`, `get_order_traffic` |
+| `wallet:read` | `list_my_wallets`, `get_wallet_balance`, `list_wallet_transactions`, `get_transaction` |
+| `orders:write` (**Allow spending from my wallet**) | `create_proxy_order`, `extend_proxy_period`, `buy_proxy_bandwidth`, `set_auto_renew`, `set_proxy_whitelist`, `change_proxy_protocol`, `sync_proxy_state` |
+
+Every tool is listed whatever you granted; a call outside your scopes
+returns an error that names the missing one. An API key from the dashboard
+reaches every tool.
 
 ### Catalog
 
@@ -199,7 +366,8 @@ the API mutation path.
 
 #### Non-destructive mutations
 
-No dry-run because nothing is charged.
+No dry-run because nothing is charged. A signed-in client still needs
+`orders:write` for these, as for the purchases above.
 
 | Tool | Arguments |
 | --- | --- |
@@ -341,8 +509,8 @@ Use a fresh key per **logical** operation:
 
 The MCP server intentionally does **not** expose:
 
-- `/users/*` and `/auth/*` — account management requires JWT, not an
-  API key.
+- `/users/*` and `/auth/*` — account management needs a signed-in session
+  (a token from sign-in), not a key or an OAuth connection.
 - `/payments/*` — payment intents are user-initiated through the
   dashboard.
 - `/api-keys/*` — you cannot manage keys through a key (security).
@@ -352,16 +520,36 @@ directly.
 
 ## Troubleshooting
 
-**Tool calls return `Missing API key`** — the `X-API-Key` header isn't
-reaching the server. In Claude Desktop check the `headers` block in
-`claude_desktop_config.json`; in Claude Code re-run `claude mcp add`
-with `--header`.
+**The client never asks you to sign in** — check the address is exactly
+`https://proxyjam.com/mcp` (no trailing slash; `https://proxyjam.com/mcp/` is
+the web page). Clients without MCP authorization need an API key instead.
+
+**`401 Unauthorized`** when connecting — neither a sign-in nor an API key
+reached the server. Sign in, or send the key as `X-API-Key: pj_…` (or
+`Authorization: Bearer pj_…`): in Claude Code re-run `claude mcp add` with
+`--header`; in Claude or Claude Desktop check **Request headers**, or your
+`mcp-remote` arguments in `claude_desktop_config.json`.
+
+**`Spending is not enabled for this connection`** — the connection was
+approved without **Allow spending from my wallet**. Reconnect and tick it
+(see [Allow spending later](#allow-spending-later)).
+
+**`This API key cannot spend`**, or `HTTP 403` with
+`INSUFFICIENT_SCOPE` — the key is an agent-registered key, which only reads.
+Use a dashboard API key or sign in.
+
+**A read tool refuses an agent-registered key** with "This tool needs the
+`{scope}` scope. This API key does not have it. Claim the key with the
+claim_token you received at registration, or use a dashboard API key." — an
+unclaimed key only holds `catalog:read`, so `list_my_orders` and the other
+read tools are out of reach until the person [claims
+it](/overview/oauth#agent-registration).
 
 **`HTTP 401 Invalid API key`** — the key is wrong, revoked, or
 expired. Generate a new one via the dashboard.
 
 **Tools list is empty** — the MCP client cached an old session.
-Restart Claude Desktop / reconnect the Claude Code server.
+Restart the client or reconnect the server.
 
 **`HTTP 422`** on `list_offers` — only the values listed in
 `ref://offer-kinds` are accepted for `kind`. Earlier docs mentioned

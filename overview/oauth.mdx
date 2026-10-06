@@ -1,0 +1,336 @@
+---
+title: "OAuth and agent registration"
+description: "How MCP clients sign in to ProxyJam with OAuth 2.1, which scopes they can hold, how long tokens last, how access is revoked, and how an agent registers on its own."
+---
+
+ProxyJam runs an OAuth 2.1 authorization server for its [MCP server](/mcp-server).
+It is what the **Sign in** button in claude.ai, Claude Code and ChatGPT talks
+to: the person approves a connection on a ProxyJam consent screen, and the MCP
+client gets a token for that person's account without ever seeing a password or
+an API key.
+
+<Info>
+  OAuth tokens are for the MCP server only. The REST API at
+  `https://api.proxyjam.com/public/v1` keeps using [API keys](/overview/authentication).
+</Info>
+
+## Discovery
+
+The issuer is `https://proxyjam.com`, exactly: no trailing slash and no path.
+Clients compare it byte for byte with the `iss` on every redirect.
+
+| Document | URL |
+| --- | --- |
+| Authorization server metadata (RFC 8414) | `https://proxyjam.com/.well-known/oauth-authorization-server` |
+| Protected resource metadata for `https://proxyjam.com/mcp` | `https://proxyjam.com/.well-known/oauth-protected-resource/mcp` |
+| Protected resource metadata for `https://mcp.proxyjam.com/mcp` | `https://mcp.proxyjam.com/.well-known/oauth-protected-resource/mcp` |
+| Protected resource metadata for `https://proxyjam.com` | `https://proxyjam.com/.well-known/oauth-protected-resource` |
+| Signing keys (JWKS) | `https://api.proxyjam.com/.well-known/jwks.json` |
+
+An MCP client does not need to know any of this in advance. Its first request
+to the MCP server without a token gets:
+
+```http
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer resource_metadata="https://proxyjam.com/.well-known/oauth-protected-resource/mcp", scope="catalog:read account:read orders:read wallet:read orders:write"
+```
+
+and discovery follows from there. On `https://mcp.proxyjam.com/mcp` the
+challenge names that host's own resource metadata.
+
+Agent-oriented summary: [auth.md](https://proxyjam.com/auth.md).
+
+## Endpoints
+
+| Endpoint | URL |
+| --- | --- |
+| Authorization | `https://api.proxyjam.com/oauth/authorize` |
+| Token | `https://api.proxyjam.com/oauth/token` |
+| Dynamic client registration (RFC 7591) | `https://api.proxyjam.com/oauth/register` |
+| Revocation (RFC 7009) | `https://api.proxyjam.com/oauth/revoke` |
+
+What the server supports:
+
+- **Grant types:** `authorization_code` and `refresh_token`. No implicit,
+  password or client-credentials grant, and no OpenID Connect (no `id_token`).
+- **PKCE:** required, `S256` only.
+- **Resource indicators (RFC 8707):** send `resource` on the authorize and token
+  requests. Accepted values are `https://proxyjam.com/mcp` (the default when
+  `resource` is absent), `https://mcp.proxyjam.com/mcp` and
+  `https://proxyjam.com`. The access token's `aud` is that value.
+- **`iss` on every redirect (RFC 9207),** success and error alike.
+- **Client authentication at the token endpoint:** `none`,
+  `client_secret_post` or `client_secret_basic`. `private_key_jwt` is not
+  offered.
+
+## Registering a client
+
+A client registers in one of two ways.
+
+**Client ID Metadata Document.** The `client_id` is an `https` URL whose JSON
+document describes the client. ProxyJam fetches it when the client first sends
+someone to the authorization endpoint. The document must list `none` among its
+token endpoint authentication methods, must not declare a client secret, and
+must serve its own URL as `client_id`. ProxyJam does not follow redirects when
+it fetches the document and refuses private addresses. claude.ai, Claude Code
+and ChatGPT all use this route, so they need no registration step.
+
+**Dynamic client registration.**
+
+```bash
+curl -X POST https://api.proxyjam.com/oauth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_name": "My agent",
+    "redirect_uris": ["http://127.0.0.1/callback"],
+    "token_endpoint_auth_method": "none",
+    "grant_types": ["authorization_code", "refresh_token"],
+    "response_types": ["code"],
+    "application_type": "native"
+  }'
+```
+
+The answer carries a `client_id` starting with `dcr_`, the metadata you
+registered, and `client_secret_expires_at: 0`. A client registered with
+`client_secret_post` or `client_secret_basic` also gets its `client_secret`,
+shown once. A client registered this way is never shown as verified on the
+consent screen, and one that is never used within 30 days is removed.
+
+### Redirect URIs
+
+A redirect URI must be one of:
+
+- `https` with a host, no fragment and no user info;
+- `http` on `127.0.0.1`, `[::1]` or `localhost`. The port is ignored when
+  matching, so `http://127.0.0.1/callback` covers `http://127.0.0.1:8765/callback`;
+- a private-use scheme in reverse-domain form, such as `com.example.app:/callback`,
+  for a client registered with `"application_type": "native"`.
+
+Everything else, `javascript:` and `data:` included, is refused. A redirect URI
+must match a registered one exactly, apart from the loopback port.
+
+## Signing in
+
+1. Send the person's browser to the authorization endpoint:
+
+   ```
+   https://api.proxyjam.com/oauth/authorize
+     ?response_type=code
+     &client_id=dcr_…
+     &redirect_uri=http%3A%2F%2F127.0.0.1%3A8765%2Fcallback
+     &code_challenge=<BASE64URL(SHA256(verifier))>
+     &code_challenge_method=S256
+     &state=<random>
+     &resource=https%3A%2F%2Fproxyjam.com%2Fmcp
+     &scope=catalog%3Aread%20account%3Aread%20orders%3Aread%20wallet%3Aread%20orders%3Awrite
+   ```
+
+2. They sign in to ProxyJam if they are not already, and approve on the consent
+   screen at `app.proxyjam.com`. The screen always shows where access will be
+   sent. An app on the person's own computer (a loopback redirect) gets a
+   warning and is never marked as verified.
+3. The browser comes back to your redirect URI with `code`, `state` and
+   `iss=https://proxyjam.com`, or with `error=access_denied` if they declined.
+   An unknown client or a redirect URI that is not registered always ends on
+   a ProxyJam error page, whatever the client — redirecting that kind of
+   error back would make this an open redirector. Any other request error
+   (no PKCE challenge, a `resource` this server does not serve, …) ends on
+   a ProxyJam error page too, unless yours is a verified app or a loopback
+   redirect, in which case it comes back as `error=` on your redirect URI
+   instead.
+4. Exchange the code within 60 seconds:
+
+   ```bash
+   curl -X POST https://api.proxyjam.com/oauth/token \
+     -d grant_type=authorization_code \
+     -d code=pjc_… \
+     -d redirect_uri=http://127.0.0.1:8765/callback \
+     -d client_id=dcr_… \
+     -d code_verifier=<verifier> \
+     -d resource=https://proxyjam.com/mcp
+   ```
+
+   ```json
+   {
+     "access_token": "eyJhbGciOiJFUzI1NiIs…",
+     "token_type": "Bearer",
+     "expires_in": 900,
+     "refresh_token": "pjr_…",
+     "scope": "catalog:read account:read orders:read wallet:read"
+   }
+   ```
+
+   `scope` lists what the person actually granted, which can be less than you
+   asked for.
+5. Call the MCP server with `Authorization: Bearer <access_token>`.
+
+## Scopes
+
+| Scope | On the consent screen | Grants | MCP tools |
+| --- | --- | --- | --- |
+| `catalog:read` | always, with the other reads | the catalogue | `list_offers` |
+| `account:read` | always, with the other reads | profile, referrals, promo-code preview, IP-check history and quota | — |
+| `orders:read` | always, with the other reads | orders, traffic, and proxy details **including logins and passwords** | `list_my_orders`, `get_order`, `get_my_traffic_summary`, `get_order_traffic` |
+| `wallet:read` | always, with the other reads | wallets, balances and transactions | `list_my_wallets`, `get_wallet_balance`, `list_wallet_transactions`, `get_transaction` |
+| `orders:write` | **off**: a separate *Allow spending from my wallet* box | spending, and every change to a paid service | `create_proxy_order`, `extend_proxy_period`, `buy_proxy_bandwidth`, `set_auto_renew`, `set_proxy_whitelist`, `change_proxy_protocol`, `sync_proxy_state` |
+
+- **Every read scope the client asks for is granted together.** The person
+  cannot withhold one and keep another.
+- **The spending box appears when the client asks for `orders:write`.**
+  The MCP server's challenge does, so every sign-in through it offers the
+  box; it starts unticked.
+- **Each approval replaces the scopes.** Approving again without the box
+  removes `orders:write` from the connection. All connections of one app to
+  one account on the same MCP address share their scopes, and existing
+  tokens pick up a change within 5 minutes.
+- **Never granted:** API-key management, email and password changes, account
+  deletion, webhook management and wallet top-ups. No OAuth token reaches them,
+  whatever it asks for.
+- A tool outside the token's scopes returns an error that names the missing
+  scope. To allow spending, reconnect and tick the box.
+
+## Tokens and lifetimes
+
+| Token | Format | Lifetime |
+| --- | --- | --- |
+| Access token | JWT signed with ES256, `typ: at+jwt`, `iss` `https://proxyjam.com`, `aud` the requested resource | 15 minutes |
+| Refresh token | opaque, `pjr_…` | 30 days from its own issue; every refresh returns a new one, so the window slides |
+| Authorization code | opaque, `pjc_…`, single use | 60 seconds |
+| Pending authorization (consent screen) | — | 10 minutes |
+
+- **Refresh tokens rotate.** Use each one once. Presenting a refresh token that
+  was already used revokes the whole connection, as does redeeming a code twice.
+- **A dead refresh token** gets `invalid_grant`; send the person through sign-in
+  again.
+- A refresh may narrow `scope` to a subset of the connection's scopes. It never
+  widens it.
+
+## Revocation
+
+- **By the person.** Settings → *Connected apps* in the
+  [dashboard](https://app.proxyjam.com/settings) lists every connection with its
+  scopes and last use, and revokes any of them.
+- **By the client.** `POST https://api.proxyjam.com/oauth/revoke` with `token`
+  (an access or refresh token) and the same client authentication as the token
+  endpoint. Revoking either token revokes its whole connection. An unknown or
+  expired token still gets `200`; a token issued to another client gets `400
+  invalid_grant`.
+- **Automatically.** Changing, resetting or first setting the password,
+  signing out everywhere, and deleting the account revoke every connection. So
+  does refresh-token or code reuse.
+
+A revoked connection stops working within 5 minutes, and its refresh token is
+refused at once. Revocation is final: signing in again creates a new connection.
+
+## Errors
+
+The token, registration and revocation endpoints answer errors as flat JSON:
+
+```json
+{ "error": "invalid_grant", "error_description": "…" }
+```
+
+| Error | Meaning |
+| --- | --- |
+| `invalid_request` | a required parameter is missing or malformed |
+| `invalid_client` | client authentication failed (`401`) |
+| `invalid_grant` | the code or refresh token is wrong, expired, already used, revoked, or belongs to another client |
+| `unauthorized_client` | this client may not use this grant type |
+| `unsupported_grant_type` | not `authorization_code` or `refresh_token` |
+| `invalid_scope` | a refresh asked for a scope the connection does not hold |
+| `invalid_target` | `resource` is not one of the accepted values |
+| `invalid_redirect_uri`, `invalid_client_metadata` | registration refused (`400`) |
+| `slow_down` | too many requests (`429`, honour `Retry-After`) |
+
+## Agent registration
+
+An agent that works for nobody in particular can still get a credential of its
+own, following [auth.md](https://proxyjam.com/auth.md) (version 0.1, anonymous
+method). It is advertised in the `agent_auth` block of the authorization server
+metadata.
+
+### Register
+
+```bash
+curl -X POST https://api.proxyjam.com/agent/auth \
+  -H "Content-Type: application/json" \
+  -d '{"type": "anonymous", "requested_credential_type": "api_key"}'
+```
+
+```json
+{
+  "registration_id": "reg_…",
+  "registration_type": "anonymous",
+  "credential_type": "api_key",
+  "credential": "pj_…",
+  "credential_expires": "2026-10-25T12:00:00Z",
+  "scopes": ["catalog:read"],
+  "claim_url": "https://api.proxyjam.com/agent/auth/claim",
+  "claim_token": "clm_…",
+  "claim_token_expires": "2026-09-26T12:00:00Z",
+  "post_claim_scopes": ["catalog:read", "account:read", "orders:read", "wallet:read"]
+}
+```
+
+`credential` and `claim_token` are shown once. Send the key as
+`Authorization: Bearer pj_…` (or `X-API-Key`) on the MCP server and on the REST
+API. With `catalog:read` it reads the catalogue. It expires after 30 days unless
+it is claimed.
+
+### Claim
+
+A claim attaches the key to a person's account, with that person's consent.
+
+1. The agent asks the person for their email and posts it with the claim token:
+
+   ```bash
+   curl -X POST https://api.proxyjam.com/agent/auth/claim \
+     -H "Content-Type: application/json" \
+     -d '{"claim_token": "clm_…", "email": "person@example.com"}'
+   ```
+
+   The answer is `{"registration_id", "claim_attempt_id", "status": "initiated", "expires_at"}`,
+   the same whether or not the address has an account.
+2. ProxyJam emails a link, valid for 60 minutes. On that page the person clicks
+   **Show my code** and sees a 6-digit code, valid for 10 minutes and 5 tries.
+   Opening the link again gives a fresh code. If the address already has a
+   ProxyJam account, the page shows the code only to someone signed in to that
+   account. Every claim page offers **This wasn't me**, which cancels the
+   claim.
+3. The person reads the code to the agent, which completes the claim:
+
+   ```bash
+   curl -X POST https://api.proxyjam.com/agent/auth/claim/complete \
+     -H "Content-Type: application/json" \
+     -d '{"claim_token": "clm_…", "otp": "123456"}'
+   ```
+
+   The answer is `{"registration_id": "reg_…", "status": "claimed"}`. The same
+   key keeps working, now with the read scopes, and no longer expires.
+
+**What a claim grants:** `catalog:read`, `account:read`, `orders:read` and
+`wallet:read`. That includes your orders **with their proxy logins and
+passwords**, your wallet balance and transactions, and your account details. A
+claim **never** grants `orders:write`: a claimed key cannot spend money or
+change a paid service. An existing account gets an email when a key is attached
+to it, and the key is listed under API keys in the dashboard, where it can be
+revoked.
+
+An address with no account gets a new one, verified by the code and without a
+password; set one later with *Forgot password*. While new registrations are
+switched off, completing such a claim answers `403 registration_disabled`.
+
+| Error | Meaning |
+| --- | --- |
+| `invalid_request` | malformed body |
+| `unsupported_credential_type` | only `api_key` is issued |
+| `verified_email_not_enabled`, `issuer_not_enabled` | only the anonymous method is offered |
+| `invalid_claim_token` | the claim token is wrong, or the claim was cancelled |
+| `otp_invalid`, `otp_expired` | ask the person for the code again, or to open the link again |
+| `claim_expired` | the 24-hour claim window has passed; register again |
+| `previously_claimed` | the claim is already complete |
+| `registration_disabled` | new accounts are not being created right now (`403`, do not retry) |
+| `rate_limited` | too many requests (`429`, honour `Retry-After`) |
+
+A `401` on a key that used to work means it expired or was revoked: drop it and
+register again.
