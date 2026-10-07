@@ -289,8 +289,18 @@ A claim attaches the key to a person's account, with that person's consent.
      -d '{"claim_token": "clm_…", "email": "person@example.com"}'
    ```
 
-   The answer is `{"registration_id", "claim_attempt_id", "status": "initiated", "expires_at"}`,
-   the same whether or not the address has an account.
+   The answer is the same whether or not the address has an account:
+
+   ```json
+   {
+     "registration_id": "reg_…",
+     "claim_attempt_id": "cla_…",
+     "status": "initiated",
+     "expires_at": "2026-10-07T12:00:00Z"
+   }
+   ```
+
+   `expires_at` is when the emailed link stops working, 60 minutes later.
 2. ProxyJam emails a link, valid for 60 minutes. On that page the person clicks
    **Show my code** and sees a 6-digit code, valid for 10 minutes and 5 tries.
    Opening the link again gives a fresh code. If the address already has a
