@@ -47,7 +47,8 @@ API keys work on all product endpoints:
 
 The following endpoints **do not accept API keys** and require direct user authentication:
 
-- `/users/*` — account and authentication management
+- `/users/*` — account and authentication management, except `GET /users/me`, which an
+  API key can read (scope `account:read`)
 - `/auth/*` — Google, Apple and GitHub sign-in
 - `/payments/*` — payment intents and providers
 - `/notifications/*` — notification preferences
