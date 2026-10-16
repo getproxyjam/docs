@@ -1,0 +1,469 @@
+---
+title: "Webhooks"
+description: "Get an HTTPS callback when one of your proxies changes status: register an endpoint, verify the signature, and handle retries."
+---
+
+ProxyJam can call a URL of yours whenever the status of one of your proxies
+changes — for example from `active` to `expired`. Instead of polling
+[`GET /orders`](/api/orders/list-orders), you register one endpoint, keep its
+signing secret, and get a signed `POST` with a JSON body for every change.
+
+Endpoints are managed through the API at
+`https://api.proxyjam.com/public/v1/webhooks`.
+
+## Before you start
+
+- **Credentials.** The webhook endpoints need full access: a signed-in session,
+  or an [API key](/overview/authentication) created without a scope restriction.
+  A key limited to specific scopes, and an [OAuth](/overview/oauth) token, are
+  refused with `403 INSUFFICIENT_SCOPE` and `details.required_scope` set to
+  `full-access`.
+- **One active endpoint per account.** You can keep several endpoints, but only
+  one of them can be enabled at a time. Creating or enabling a second one
+  answers `409 CONFLICT`.
+- **A public URL.** Use `https`. The URL may be up to 2048 characters, must not
+  carry a username or password, and must resolve to a public address: hosts
+  such as `localhost`, private ranges (`10.0.0.0/8`, `192.168.0.0/16`, …),
+  loopback and link-local addresses are refused with `422 VALIDATION_ERROR`.
+  To develop locally, expose your server through a tunnel with a public
+  hostname.
+
+## Events
+
+There is one event type today.
+
+| Event | Sent when |
+| --- | --- |
+| `proxy.status_changed` | The status of a proxy on one of your orders changes. |
+
+Every endpoint subscribes to it automatically; there is no event list to
+configure. The body carries a `version` field — currently `2026-04-01` — that
+changes if the shape of the payload ever changes.
+
+## Payload
+
+```json
+{
+  "data": {
+    "change_source": "status_changed",
+    "order_id": "8b0f6a52-3f3e-4a1c-9d7e-5c2b1a0e4f11",
+    "proxy": {
+      "expires_at": "2026-11-16T09:30:00+00:00",
+      "host": "203.0.113.10",
+      "port": 8080,
+      "previous_status": "active",
+      "protocol": "HTTP",
+      "status": "expired"
+    },
+    "user_id": "1d4c7e90-6b2a-4f8e-a3d5-0c9b8e7f6a21"
+  },
+  "id": "c3e1f0a4-7d2b-4e9a-b6c8-2f5a1d0e9b73",
+  "meta": {
+    "attempt": 1,
+    "delivery_id": "5a9e2c41-0b7d-4f3a-8e6c-1d2b3a4c5e6f",
+    "is_test": false
+  },
+  "occurred_at": "2026-10-16T09:30:02.418000+00:00",
+  "type": "proxy.status_changed",
+  "version": "2026-04-01"
+}
+```
+
+The body above is pretty-printed for reading. On the wire it is compact JSON
+with sorted keys — and the signature covers those exact bytes, so verify the
+raw body before you parse it.
+
+<ResponseField name="id" type="string">
+  The event id. It stays the same on every retry of the same event, so use it
+  to drop duplicates. Treat it as opaque.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  The event type, `proxy.status_changed`. Also sent as `X-ProxyJam-Event`.
+</ResponseField>
+
+<ResponseField name="version" type="string">
+  Payload schema version, `2026-04-01`.
+</ResponseField>
+
+<ResponseField name="occurred_at" type="string">
+  When the status changed, ISO 8601 in UTC.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  <Expandable title="properties">
+    <ResponseField name="user_id" type="string">
+      Your account id.
+    </ResponseField>
+    <ResponseField name="order_id" type="string">
+      The order the proxy belongs to — pass it to
+      [`GET /orders/{order_id}`](/api/orders/get-order) for the full record.
+    </ResponseField>
+    <ResponseField name="proxy.host" type="string">
+      Proxy host.
+    </ResponseField>
+    <ResponseField name="proxy.port" type="integer">
+      Proxy port.
+    </ResponseField>
+    <ResponseField name="proxy.protocol" type="string">
+      `HTTP`, `HTTPS` or `SOCKS5`.
+    </ResponseField>
+    <ResponseField name="proxy.status" type="string">
+      The new status, lowercase — the same live proxy state that
+      [`GET /orders/{order_id}`](/api/orders/get-order) reports (for example
+      `active`, `expired`).
+    </ResponseField>
+    <ResponseField name="proxy.previous_status" type="string | null">
+      The status before the change. `null` only on a test delivery.
+    </ResponseField>
+    <ResponseField name="proxy.expires_at" type="string | null">
+      When the proxy expires, ISO 8601, or `null` if it has no expiry date.
+    </ResponseField>
+    <ResponseField name="change_source" type="string">
+      A short label for what triggered the change, such as `status_changed`.
+      Informational: new labels can appear, so do not reject values you do not
+      recognise.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="meta" type="object">
+  <Expandable title="properties">
+    <ResponseField name="delivery_id" type="string">
+      The delivery id, also sent as `X-ProxyJam-Delivery-Id`. Constant across
+      the retries of one delivery.
+    </ResponseField>
+    <ResponseField name="attempt" type="integer">
+      Which attempt this is, starting at `1`.
+    </ResponseField>
+    <ResponseField name="is_test" type="boolean">
+      `true` when the delivery came from [`POST /webhooks/{endpoint_id}/test`](#send-a-test-delivery).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Request headers
+
+Every delivery is a `POST` with these headers:
+
+| Header | Value |
+| --- | --- |
+| `Content-Type` | `application/json` |
+| `User-Agent` | `ProxyJam-Webhooks/1.0` |
+| `X-ProxyJam-Event` | The event type, `proxy.status_changed`. |
+| `X-ProxyJam-Delivery-Id` | The delivery id (UUID), the same as `meta.delivery_id`. |
+| `X-ProxyJam-Timestamp` | When this attempt was signed, as Unix time in seconds. |
+| `X-ProxyJam-Signature` | `v1=` followed by a hex HMAC-SHA256 — see below. |
+
+## Verifying the signature
+
+Each endpoint has its own signing secret, `whsec_` followed by 64 hex
+characters. It is returned **once**, as `signing_secret`, in the response that
+creates the endpoint. After that the API shows only `secret_preview` — the
+first 12 and last 6 characters — so you can tell secrets apart, but cannot
+recover one. Store it as you would a password.
+
+The signature is computed over a string made of three parts joined by dots:
+
+```text
+{X-ProxyJam-Timestamp}.{X-ProxyJam-Delivery-Id}.{hex SHA-256 of the raw body}
+```
+
+`X-ProxyJam-Signature` is `v1=` followed by the hex HMAC-SHA256 of that string,
+keyed with the whole signing secret, `whsec_` prefix included. To verify a
+delivery:
+
+<Steps>
+  <Step title="Read the raw body">
+    Take the request body as bytes, before any JSON parsing. Re-serialising a
+    parsed object changes the bytes and breaks the signature.
+  </Step>
+  <Step title="Check the timestamp">
+    Reject the request if `X-ProxyJam-Timestamp` is more than five minutes away
+    from your clock. Every attempt, retries included, is signed with a fresh
+    timestamp, so a genuine delivery is never old.
+  </Step>
+  <Step title="Recompute and compare">
+    Build the signing string, compute the HMAC, and compare it with the header
+    in constant time.
+  </Step>
+</Steps>
+
+<CodeGroup>
+
+```python Python
+import hashlib
+import hmac
+import time
+
+TOLERANCE_SECONDS = 300
+
+
+def verify_proxyjam_webhook(
+    secret: str, body: bytes, headers: dict[str, str]
+) -> bool:
+    """`headers` must be looked up case-insensitively (as in Flask, Django,
+    FastAPI and aiohttp); `body` is the raw request body."""
+    timestamp = headers.get("X-ProxyJam-Timestamp", "")
+    delivery_id = headers.get("X-ProxyJam-Delivery-Id", "")
+    signature = headers.get("X-ProxyJam-Signature", "")
+
+    if not timestamp.isdigit() or abs(time.time() - int(timestamp)) > TOLERANCE_SECONDS:
+        return False
+
+    body_sha = hashlib.sha256(body).hexdigest()
+    signing_string = f"{timestamp}.{delivery_id}.{body_sha}"
+    expected = "v1=" + hmac.new(
+        secret.encode(), signing_string.encode(), hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+```
+
+```javascript Node.js
+const crypto = require("node:crypto");
+
+const TOLERANCE_SECONDS = 300;
+
+// `body` is the raw request body as a Buffer — for example from
+// express.raw({ type: "application/json" }). `headers` is req.headers,
+// whose names Node lower-cases.
+function verifyProxyJamWebhook(secret, body, headers) {
+  const timestamp = headers["x-proxyjam-timestamp"] ?? "";
+  const deliveryId = headers["x-proxyjam-delivery-id"] ?? "";
+  const signature = headers["x-proxyjam-signature"] ?? "";
+
+  if (!/^\d+$/.test(timestamp)) return false;
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > TOLERANCE_SECONDS) return false;
+
+  const bodySha = crypto.createHash("sha256").update(body).digest("hex");
+  const signingString = `${timestamp}.${deliveryId}.${bodySha}`;
+  const expected =
+    "v1=" + crypto.createHmac("sha256", secret).update(signingString).digest("hex");
+
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+```
+
+</CodeGroup>
+
+Answer a delivery that fails verification with `401` or `403`; it is not
+retried.
+
+## Responding and retries
+
+Answer with any `2xx` status as soon as you have accepted the event, and do the
+work afterwards. Each attempt waits at most **10 seconds** for your response.
+Redirects are not followed.
+
+| Your response | What ProxyJam does |
+| --- | --- |
+| `2xx` | Delivered. No further attempts. |
+| `408`, `409`, `425`, `429`, any `5xx` | Retries. |
+| Timeout, connection error, DNS failure | Retries. |
+| `3xx` or any other `4xx` | Gives up — the delivery is marked failed. |
+
+A delivery gets **five attempts** in total. The wait before each retry starts
+at 30 seconds and doubles — about 30 s, 1 min, 2 min and 4 min — and would never
+exceed two hours. Retries are picked up by a job that runs once a minute, so
+expect the actual gaps to be up to a minute longer. After the fifth failed
+attempt the delivery is abandoned.
+
+Deleting the endpoint cancels its pending retries, and a retry that comes due
+while the endpoint is disabled is cancelled instead of sent. Changes that
+happen while no endpoint is enabled are not delivered later.
+
+Because a retry follows any attempt whose answer did not arrive in time, the
+same event can reach you more than once. Deduplicate on the body's `id`. And
+since events can also arrive out of order, compare `occurred_at` — or fetch
+the order — before acting on a status.
+
+## Managing endpoints
+
+All five endpoints live under `https://api.proxyjam.com/public/v1`.
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| `GET` | `/webhooks` | List your endpoints. |
+| `POST` | `/webhooks` | Create an endpoint. Returns the signing secret once. |
+| `PATCH` | `/webhooks/{endpoint_id}` | Change the URL, or enable / disable it. |
+| `DELETE` | `/webhooks/{endpoint_id}` | Delete it. Answers `204` with no body. |
+| `POST` | `/webhooks/{endpoint_id}/test` | Send one test delivery and return the result. |
+
+An id that does not exist, or belongs to another account, answers
+`404 NOT_FOUND`. Errors use the usual [error envelope](/overview/errors).
+
+### The endpoint object
+
+```json
+{
+  "id": "2f6d9b1e-8c4a-4e7f-a0b3-6d5c4e3f2a19",
+  "user_id": "1d4c7e90-6b2a-4f8e-a3d5-0c9b8e7f6a21",
+  "event_type": "proxy.status_changed",
+  "url": "https://example.com/hooks/proxyjam",
+  "enabled": true,
+  "secret_preview": "whsec_3f9a1c...a7b2e4",
+  "last_test_at": null,
+  "last_delivery_at": "2026-10-16T09:30:03.102000+00:00",
+  "created_at": "2026-10-01T12:00:00+00:00",
+  "updated_at": "2026-10-01T12:00:00+00:00"
+}
+```
+
+<ResponseField name="id" type="string">
+  Endpoint id, the `{endpoint_id}` in the paths above.
+</ResponseField>
+
+<ResponseField name="event_type" type="string">
+  Always `proxy.status_changed` for now.
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  Where deliveries are sent.
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean">
+  Whether the endpoint receives deliveries.
+</ResponseField>
+
+<ResponseField name="secret_preview" type="string">
+  The first 12 and last 6 characters of the signing secret.
+</ResponseField>
+
+<ResponseField name="last_test_at" type="string | null">
+  When a test delivery was last sent.
+</ResponseField>
+
+<ResponseField name="last_delivery_at" type="string | null">
+  When a delivery last succeeded.
+</ResponseField>
+
+### List endpoints
+
+```bash
+curl "https://api.proxyjam.com/public/v1/webhooks?limit=50&offset=0" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+`limit` is 1–100 (default `50`), `offset` defaults to `0`. The response is
+`{"items": [ …endpoint objects… ]}`.
+
+### Create an endpoint
+
+```bash
+curl -X POST https://api.proxyjam.com/public/v1/webhooks \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/hooks/proxyjam"}'
+```
+
+<ParamField body="url" type="string" required>
+  The URL to deliver to, 1–2048 characters. See [Before you start](#before-you-start)
+  for what is accepted.
+</ParamField>
+
+<ParamField body="enabled" type="boolean" default="true">
+  Create it enabled. Pass `false` to create a second endpoint while another
+  one is active.
+</ParamField>
+
+The response is `201` with the endpoint object plus one more field:
+
+<ResponseField name="signing_secret" type="string">
+  The full signing secret, `whsec_…`. Shown in this response only — store it
+  now.
+</ResponseField>
+
+### Update an endpoint
+
+```bash
+curl -X PATCH https://api.proxyjam.com/public/v1/webhooks/2f6d9b1e-8c4a-4e7f-a0b3-6d5c4e3f2a19 \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+<ParamField body="url" type="string">
+  A new URL, validated like the one at creation. The signing secret stays the
+  same.
+</ParamField>
+
+<ParamField body="enabled" type="boolean">
+  `false` stops deliveries: new changes are not sent, and retries that come due
+  are cancelled. `true` turns it back on, provided no other endpoint is
+  enabled; it does not replay what was missed.
+</ParamField>
+
+Send only the fields you change. The response is the updated endpoint object.
+
+### Delete an endpoint
+
+```bash
+curl -X DELETE https://api.proxyjam.com/public/v1/webhooks/2f6d9b1e-8c4a-4e7f-a0b3-6d5c4e3f2a19 \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+Pending retries for the endpoint are cancelled.
+
+### Send a test delivery
+
+```bash
+curl -X POST https://api.proxyjam.com/public/v1/webhooks/2f6d9b1e-8c4a-4e7f-a0b3-6d5c4e3f2a19/test \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+Sends one signed delivery to the endpoint right away, exactly as a real one
+would be signed, and waits for the result. Use it to check your URL and your
+signature verification before real events arrive. The endpoint must be
+enabled, or the call answers `409`.
+
+A test delivery is easy to tell apart: `meta.is_test` is `true`, `id` starts
+with `test:`, `proxy.status` is `test`, `proxy.previous_status` is `null`,
+`change_source` is `manual_test`, and the order id and proxy address are
+placeholders. It gets a single attempt and is never retried.
+
+The response reports what happened:
+
+```json
+{
+  "endpoint": { "id": "2f6d9b1e-8c4a-4e7f-a0b3-6d5c4e3f2a19", "last_test_at": "2026-10-16T10:00:00.512000+00:00", "...": "…" },
+  "delivery": {
+    "delivery": {
+      "id": "5a9e2c41-0b7d-4f3a-8e6c-1d2b3a4c5e6f",
+      "status": "delivered",
+      "attempt_count": 1,
+      "max_attempts": 1,
+      "last_http_status": 200,
+      "last_latency_ms": 143,
+      "last_error_code": null,
+      "is_test": true,
+      "...": "…"
+    },
+    "attempts": [
+      {
+        "attempt_no": 1,
+        "request_headers": { "X-ProxyJam-Event": "proxy.status_changed", "...": "…" },
+        "response_status": 200,
+        "response_body_excerpt": "ok",
+        "error_code": null,
+        "latency_ms": 143
+      }
+    ]
+  }
+}
+```
+
+`delivery.status` is `delivered` on success and `failed` otherwise — or
+`blocked` if the URL now resolves to an address that is refused, with
+`error_code` `ssrf_blocked`. When the request did not get an HTTP answer,
+`error_code` says why: `timeout`, `network_error` or `dns_error`. `response_body_excerpt` holds up to the first
+1024 characters of what your server answered. The recorded `request_headers`
+omit `X-ProxyJam-Signature`.
+
+## Rotating the secret
+
+A secret belongs to its endpoint and cannot be changed. To rotate, create a
+new endpoint with `"enabled": false`, give its secret to your receiver, then
+disable the old endpoint and enable the new one. Delete the old one once
+nothing depends on it.
