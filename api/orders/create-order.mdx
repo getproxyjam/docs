@@ -118,7 +118,7 @@ An order moves through these values in `status`. An unpaid order ends in `expire
 | `expired` | The payment window closed unpaid. Nothing was charged. |
 
 <Note>
-  A payment that still arrives after an order has become `expired` is credited to your account balance, and the order stays `expired`. Place a new order to buy; with `"payment_method": "wallet"` the credited balance pays for it. See [Payment methods](/overview/payment-methods).
+  A payment that arrives after an order has become `expired` may be credited to your account balance, depending on the payment method; the order itself stays `expired`. See [Payment methods](/overview/payment-methods#unpaid-orders-and-the-payment-window) for what happens to a payment that arrives late. To buy, place a new order.
 </Note>
 
 ## Example — wallet payment

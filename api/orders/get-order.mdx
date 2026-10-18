@@ -21,7 +21,7 @@ Same shape as [Create order response](/api/orders/create-order#response). `statu
 </ResponseField>
 
 <Note>
-  Read this endpoint to follow an unpaid order. If the payment window closes unpaid, `status` becomes `expired` and `payment_url` is `null`. A payment that still arrives after that is credited to your account balance, and the order stays `expired`. See [Payment methods](/overview/payment-methods).
+  Read this endpoint to follow an unpaid order. If the payment window closes unpaid, `status` becomes `expired` and `payment_url` is `null`. A payment that arrives after that may be credited to your account balance, depending on the payment method; the order stays `expired`. See [Payment methods](/overview/payment-methods#unpaid-orders-and-the-payment-window) for what happens to a payment that arrives late.
 </Note>
 
 <Note>

@@ -20,7 +20,8 @@ Notable changes to the ProxyJam API documentation. The format is based on
 - Order `status` documents the real values — `new`, `waiting_payment`, `paid`, `provisioning_failed`,
   `provisioned`, `cancelled`, `refunded`, `expired` — in place of the old `pending`, `pending_payment`,
   `active` and `failed`. An unpaid order becomes `expired` when its payment window closes; a payment
-  that lands after that is credited to the account balance and the order stays `expired`.
+  that arrives after that may be credited to the account balance, depending on the payment method (see
+  Payment methods), and the order stays `expired`.
 - The MCP server page moved to `/mcp-server` (its own tab); `/api/mcp` redirects there.
 - API key links point at `app.proxyjam.com/apikey`: the dashboard has been the root of its own
   subdomain since frontend v0.1.6, and `/dashboard/apikey` survives there only as a redirect.

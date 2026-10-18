@@ -19,11 +19,9 @@ CryptoCloud allows payment with cryptocurrency. When you place an order with `"p
 
 ```json
 {
-  "payment_info": {
-    "payment_method": "cryptocloud",
-    "payment_intent_id": "pi_abc123",
-    "payment_url": "https://pay.cryptocloud.plus/..."
-  }
+  "payment_method": "cryptocloud",
+  "payment_intent_id": "pi_abc123",
+  "payment_url": "https://pay.cryptocloud.plus/..."
 }
 ```
 
@@ -39,23 +37,27 @@ After payment is confirmed, CryptoCloud sends a webhook to ProxyJam, which activ
 
 ```json
 {
-  "payment_info": {
-    "payment_method": "rollypay",
-    "payment_intent_id": "pi_abc123",
-    "payment_url": "https://pay.rollypay.io/pay/..."
-  }
+  "payment_method": "rollypay",
+  "payment_intent_id": "pi_abc123",
+  "payment_url": "https://pay.rollypay.io/pay/..."
 }
 ```
 
 <Note>
-  SBP payments settle asynchronously. A payment that lands after the order expired is credited to the account balance — do not treat a closed payment page as a final answer; read the order status.
+  SBP payments settle asynchronously, so one can land after the order expired. It is then credited to the account balance, not to the order, which stays `expired` — check [your balance](/api/wallet/balance) and [transactions](/api/wallet/transactions).
 </Note>
 
 ## Unpaid orders and the payment window
 
 An order placed with an external payment method (card, crypto, SBP or Telegram Stars) starts in `waiting_payment`. While it stays there, `GET /orders` and `GET /orders/{order_id}` return its `payment_url`, so you can send the customer back to the payment page.
 
-If the payment window closes before the payment arrives, the order becomes `expired` and `payment_url` is `null`. Nothing was charged. A payment that lands after the order expired is credited to the account balance, and the order stays `expired`; to buy, place a new order, which the balance can pay for with `"payment_method": "wallet"`.
+If the payment window closes before the payment arrives, the order becomes `expired` and `payment_url` is `null`. Nothing was charged, and the order stays `expired`: to buy, place a new order.
+
+What happens to a payment that arrives after the order expired depends on the method:
+
+- **Card** and **Telegram Stars**: the payment page stops accepting payment once the order expires, so there is no late payment.
+- **SBP**: a payment can settle after the window closed. It is credited to your account balance, which can pay for a new order with `"payment_method": "wallet"`.
+- **Crypto**: a payment sent after the invoice was cancelled is not credited automatically. Contact support with the `payment_intent_id`.
 
 See [Order statuses](/api/orders/create-order#order-statuses) for every `status` value.
 

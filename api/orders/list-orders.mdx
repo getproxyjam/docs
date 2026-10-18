@@ -36,7 +36,7 @@ Returns the user's orders, sorted by creation date descending.
 </ResponseField>
 
 <Note>
-  To find orders that still wait for payment, filter with `status=waiting_payment`: each one carries the `payment_url` to send the customer to. When the payment window closes unpaid, the order becomes `expired` and `payment_url` is `null`. A payment that still arrives after that is credited to your account balance and the order stays `expired`. See [Payment methods](/overview/payment-methods).
+  To find orders that still wait for payment, filter with `status=waiting_payment`: each one carries the `payment_url` to send the customer to. When the payment window closes unpaid, the order becomes `expired` and `payment_url` is `null`. A payment that arrives after that may be credited to your account balance, depending on the payment method; the order stays `expired`. See [Payment methods](/overview/payment-methods#unpaid-orders-and-the-payment-window) for what happens to a payment that arrives late.
 </Note>
 
 ## Example
