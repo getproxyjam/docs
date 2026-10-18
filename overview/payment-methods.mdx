@@ -48,8 +48,16 @@ After payment is confirmed, CryptoCloud sends a webhook to ProxyJam, which activ
 ```
 
 <Note>
-  SBP payments settle asynchronously. A payment that arrives after the provider's window has closed is still credited — do not treat an expired payment page as a final answer; wait for the order status.
+  SBP payments settle asynchronously. A payment that lands after the order expired is credited to the account balance — do not treat a closed payment page as a final answer; read the order status.
 </Note>
+
+## Unpaid orders and the payment window
+
+An order placed with an external payment method (card, crypto, SBP or Telegram Stars) starts in `waiting_payment`. While it stays there, `GET /orders` and `GET /orders/{order_id}` return its `payment_url`, so you can send the customer back to the payment page.
+
+If the payment window closes before the payment arrives, the order becomes `expired` and `payment_url` is `null`. Nothing was charged. A payment that lands after the order expired is credited to the account balance, and the order stays `expired`; to buy, place a new order, which the balance can pay for with `"payment_method": "wallet"`.
+
+See [Order statuses](/api/orders/create-order#order-statuses) for every `status` value.
 
 ## Topping up your wallet
 
