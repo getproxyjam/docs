@@ -153,7 +153,7 @@ Every delivery is a `POST` with these headers:
 | `X-ProxyJam-Event` | The event type, `proxy.status_changed`. |
 | `X-ProxyJam-Delivery-Id` | The delivery id (UUID), the same as `meta.delivery_id`. |
 | `X-ProxyJam-Timestamp` | When this attempt was signed, as Unix time in seconds. |
-| `X-ProxyJam-Signature` | `v1=` followed by a hex HMAC-SHA256 — see below. |
+| `X-ProxyJam-Signature` | `v1=<hex>`, or two comma-separated values during a rotation's grace window — see below. |
 
 ## Verifying the signature
 
@@ -236,7 +236,7 @@ def verify_proxyjam_webhook(
 
     # One value normally, two during a rotation: "v1=<new>,v1=<old>".
     return any(
-        hmac.compare_digest(expected, candidate.strip())
+        hmac.compare_digest(expected.encode(), candidate.strip().encode())
         for candidate in signature.split(",")
     )
 ```
@@ -318,10 +318,11 @@ the order — before acting on a status.
 ## Automatic switch-off
 
 An endpoint that keeps failing switches itself off. After **10 consecutive
-deliveries** that end `failed`, ProxyJam sets `enabled` to `false`,
+deliveries** that end `failed` or `blocked`, ProxyJam sets `enabled` to `false`,
 `disabled_reason` to `"auto_failures"` and `disabled_at` to the time it
 happened, and cancels the endpoint's queued deliveries. The account owner gets
-an email and a notice in the dashboard.
+a notice in the dashboard and, when the account has a usable email address, an
+email too; accounts without one get the notice only.
 
 - The count is per delivery, not per attempt: a delivery that retried five
   times and was abandoned adds one.
@@ -582,9 +583,9 @@ every `v1=` value needs no change at the moment you rotate:
 
 A second rotation inside the window drops the oldest secret: the first old
 secret stops signing at once, and the secret you just rotated away from takes
-its place, so at most two secrets sign at any time. Rotation is limited to 5
-calls per minute.
+its place, so at most two secrets sign at any time. Rotation is limited to
+about 5 per minute; more returns `429`.
 
-A delivery already in flight when you rotate may carry only the old signature.
-Keep accepting the old secret for a short while after rotating; with
-`grace_seconds` at `0`, such a delivery may fail verification.
+A delivery already in flight when you rotate may carry only the old signature;
+see [Verifying the signature](#verifying-the-signature) for how long to keep
+accepting the old secret.
