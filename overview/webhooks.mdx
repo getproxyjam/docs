@@ -317,20 +317,29 @@ the order — before acting on a status.
 
 ## Automatic switch-off
 
-An endpoint that keeps failing switches itself off. After **10 consecutive
-deliveries** that end `failed` or `blocked`, ProxyJam sets `enabled` to `false`,
-`disabled_reason` to `"auto_failures"` and `disabled_at` to the time it
-happened, and cancels the endpoint's queued deliveries. The account owner gets
-a notice in the dashboard and, when the account has a usable email address, an
-email too; accounts without one get the notice only.
+An endpoint that keeps failing switches itself off, but only when **both** of
+these hold:
+
+- **10 or more deliveries in a row** ended `failed` or `blocked`, and
+- that streak of failures has lasted **at least one hour**, counted from the
+  first failure of the streak.
+
+Ten failures in the first few minutes of an outage therefore do not switch the
+endpoint off; it goes off once the streak is both long enough and old enough.
+Then ProxyJam sets `enabled` to `false`, `disabled_reason` to `"auto_failures"`
+and `disabled_at` to the time it happened, and cancels the endpoint's queued
+deliveries. The account owner gets a notice in the dashboard and, when the
+account has a usable email address, an email too; accounts without one get the
+notice only. Both show the endpoint address without its query string.
 
 - The count is per delivery, not per attempt: a delivery that retried five
   times and was abandoned adds one.
-- A delivery that succeeds resets the count to zero.
+- A delivery that is delivered resets both the count and the one-hour clock.
 - [Test deliveries](#send-a-test-delivery) never count, in either direction.
+- Changing the endpoint's `url` resets the count and the clock too.
 - Turning the endpoint back on — `PATCH` with `"enabled": true`, or from the
-  dashboard — clears `disabled_reason` and `disabled_at` and resets the count.
-  It does not replay what was missed.
+  dashboard — clears `disabled_reason` and `disabled_at` and resets the count
+  and the clock. It does not replay what was missed.
 
 An endpoint you switched off yourself keeps `disabled_reason` set to `null`.
 
@@ -384,7 +393,7 @@ An id that does not exist, or belongs to another account, answers
 
 <ResponseField name="enabled" type="boolean">
   Whether the endpoint receives deliveries. It turns `false` by itself after
-  [10 failed deliveries in a row](#automatic-switch-off).
+  [10 or more failed deliveries in a row over at least an hour](#automatic-switch-off).
 </ResponseField>
 
 <ResponseField name="secret_preview" type="string">
@@ -393,8 +402,8 @@ An id that does not exist, or belongs to another account, answers
 
 <ResponseField name="disabled_reason" type="string | null">
   `"auto_failures"` when the endpoint
-  [switched itself off](#automatic-switch-off) after repeated failures. `null`
-  while it is on, and when you switched it off yourself.
+  [switched itself off](#automatic-switch-off) after a streak of 10 or more failed
+  deliveries that lasted at least an hour. `null` while it is on, and when you switched it off yourself.
 </ResponseField>
 
 <ResponseField name="disabled_at" type="string | null">
@@ -461,13 +470,14 @@ curl -X PATCH https://api.proxyjam.com/public/v1/webhooks/2f6d9b1e-8c4a-4e7f-a0b
 
 <ParamField body="url" type="string">
   A new URL, validated like the one at creation. The signing secret stays the
-  same; to change it, [rotate it](#rotating-the-secret).
+  same; to change it, [rotate it](#rotating-the-secret). A new URL also resets
+  the [automatic switch-off](#automatic-switch-off) count and clock.
 </ParamField>
 
 <ParamField body="enabled" type="boolean">
   `false` stops deliveries: new changes are not sent, and queued deliveries and
   retries are cancelled at once. `true` turns it back on, provided no other
-  endpoint is enabled; it resets the failure count behind the
+  endpoint is enabled; it resets the failure count and clock behind the
   [automatic switch-off](#automatic-switch-off) and does not replay what was
   missed.
 </ParamField>
