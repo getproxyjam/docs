@@ -4,7 +4,7 @@ description: "Retrieve the details of a specific order."
 api: "GET /orders/{order_id}"
 ---
 
-Returns full details for a single order, including proxy credentials if the order is active.
+Returns full details for a single order, including proxy credentials once the order is `provisioned`, and the payment link while it is still waiting for payment.
 
 ## Path parameters
 
@@ -14,7 +14,15 @@ Returns full details for a single order, including proxy credentials if the orde
 
 ## Response
 
-Same shape as [Create order response](/api/orders/create-order#response).
+Same shape as [Create order response](/api/orders/create-order#response). `status` is one of `new`, `waiting_payment`, `paid`, `provisioning_failed`, `provisioned`, `cancelled`, `refunded`, `expired` — see [Order statuses](/api/orders/create-order#order-statuses).
+
+<ResponseField name="payment_url" type="string">
+  Where to send the customer to pay. Set while `status` is `waiting_payment` for any external payment method (card checkout, crypto, SBP, Telegram Stars), `null` otherwise.
+</ResponseField>
+
+<Note>
+  Read this endpoint to follow an unpaid order. If the payment window closes unpaid, `status` becomes `expired` and `payment_url` is `null`. A payment that arrives after that may be credited to your account balance, depending on the payment method; the order stays `expired`. See [Payment methods](/overview/payment-methods#unpaid-orders-and-the-payment-window) for what happens to a payment that arrives late.
+</Note>
 
 <Note>
   You can only retrieve orders that belong to your account. Requesting another user's order returns `403 Forbidden`.
@@ -27,6 +35,11 @@ Same shape as [Create order response](/api/orders/create-order#response).
   (`signature`, `tags`, `current_ip`, `status`) plus durable order
   metadata (`country`, `city`, `isp`, `period_days`, `total_usd`,
   `created_at`, …).
+
+  An order that was never provisioned — `new`, `waiting_payment`,
+  `expired` or `cancelled` — has no live proxy to read. It returns the
+  ordinary order record described under **Response** instead of this
+  snapshot, with `payment_url` included.
 
   Two fields look similar but mean different things:
   `status` is the **live proxy state** (e.g. `"active"`) reported by the
@@ -60,7 +73,7 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
 ```json Residential Response
 {
   "id": "order-uuid-here",
-  "status": "active",
+  "status": "provisioned",
   "total_usd": 7.0,
   "proxy_type": "residential",
   "ip_version": "IPv4",
@@ -68,6 +81,9 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
   "country": "US",
   "quantity": 2,
   "period_days": 30,
+  "payment_method": "wallet",
+  "payment_intent_id": null,
+  "payment_url": null,
   "proxy_access": [
     {
       "id": "1836367",

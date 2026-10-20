@@ -19,7 +19,7 @@ When a payment webhook is received:
 
 1. ProxyJam verifies the payload signature.
 2. The associated wallet balance is credited (for top-up intents).
-3. For orders in `pending_payment` status, the order is transitioned to `active` and proxies are provisioned.
+3. For orders in `waiting_payment` status, the order is marked `paid` and proxies are provisioned, after which its status is `provisioned`.
 4. A notification is sent to the user.
 
 ## Idempotency

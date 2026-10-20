@@ -12,9 +12,16 @@ Notable changes to the ProxyJam API documentation. The format is based on
   registration (`/overview/oauth`), covers the endpoints, scopes, token lifetimes, revocation, and
   how an agent registers on its own and what a claim grants.
 - API keys are also accepted as `Authorization: Bearer pj_…`.
+- `payment_url` on `GET /orders` and `GET /orders/{order_id}`: set while an order is `waiting_payment`
+  for any external payment method (card, crypto, SBP, Telegram Stars), `null` otherwise.
 
 ### Changed
 
+- Order `status` documents the real values — `new`, `waiting_payment`, `paid`, `provisioning_failed`,
+  `provisioned`, `cancelled`, `refunded`, `expired` — in place of the old `pending`, `pending_payment`,
+  `active` and `failed`. An unpaid order becomes `expired` when its payment window closes; a payment
+  that arrives after that may be credited to the account balance, depending on the payment method (see
+  Payment methods), and the order stays `expired`.
 - The MCP server page moved to `/mcp-server` (its own tab); `/api/mcp` redirects there.
 - API key links point at `app.proxyjam.com/apikey`: the dashboard has been the root of its own
   subdomain since frontend v0.1.6, and `/dashboard/apikey` survives there only as a redirect.
