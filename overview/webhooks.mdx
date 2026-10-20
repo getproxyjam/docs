@@ -153,13 +153,14 @@ Every delivery is a `POST` with these headers:
 | `X-ProxyJam-Event` | The event type, `proxy.status_changed`. |
 | `X-ProxyJam-Delivery-Id` | The delivery id (UUID), the same as `meta.delivery_id`. |
 | `X-ProxyJam-Timestamp` | When this attempt was signed, as Unix time in seconds. |
-| `X-ProxyJam-Signature` | `v1=` followed by a hex HMAC-SHA256 — see below. |
+| `X-ProxyJam-Signature` | `v1=<hex>`, or two comma-separated values during a rotation's grace window — see below. |
 
 ## Verifying the signature
 
 Each endpoint has its own signing secret, `whsec_` followed by 64 hex
 characters. It is returned **once**, as `signing_secret`, in the response that
-creates the endpoint. After that the API shows only `secret_preview` — the
+creates the endpoint — and again, once, in the response that
+[rotates it](#rotating-the-secret). After that the API shows only `secret_preview` — the
 first 12 and last 6 characters — so you can tell secrets apart, but cannot
 recover one. Store it as you would a password.
 
@@ -170,8 +171,24 @@ The signature is computed over a string made of three parts joined by dots:
 ```
 
 `X-ProxyJam-Signature` is `v1=` followed by the hex HMAC-SHA256 of that string,
-keyed with the whole signing secret, `whsec_` prefix included. To verify a
-delivery:
+keyed with the whole signing secret, `whsec_` prefix included:
+
+```text
+X-ProxyJam-Signature: v1=3b9c…e1
+```
+
+During the grace window of a [secret rotation](#rotating-the-secret) the header
+carries **two** signatures, the new secret's first and the old one's second,
+separated by a comma:
+
+```text
+X-ProxyJam-Signature: v1=3b9c…e1,v1=a704…5d
+```
+
+Split the header on `,`, take the value after each `v1=`, and accept the
+delivery if **any** of them matches. A receiver written this way keeps working
+through a rotation whichever secret it holds. Outside a rotation the header
+holds a single `v1=` value. To verify a delivery:
 
 <Steps>
   <Step title="Read the raw body">
@@ -184,8 +201,8 @@ delivery:
     timestamp, so a genuine delivery is never old.
   </Step>
   <Step title="Recompute and compare">
-    Build the signing string, compute the HMAC, and compare it with the header
-    in constant time.
+    Build the signing string, compute the HMAC, and compare it in constant time
+    with each `v1=` value in the header. One match is enough.
   </Step>
 </Steps>
 
@@ -216,7 +233,12 @@ def verify_proxyjam_webhook(
     expected = "v1=" + hmac.new(
         secret.encode(), signing_string.encode(), hashlib.sha256
     ).hexdigest()
-    return hmac.compare_digest(expected, signature)
+
+    # One value normally, two during a rotation: "v1=<new>,v1=<old>".
+    return any(
+        hmac.compare_digest(expected.encode(), candidate.strip().encode())
+        for candidate in signature.split(",")
+    )
 ```
 
 ```javascript Node.js
@@ -241,8 +263,12 @@ function verifyProxyJamWebhook(secret, body, headers) {
     "v1=" + crypto.createHmac("sha256", secret).update(signingString).digest("hex");
 
   const a = Buffer.from(expected);
-  const b = Buffer.from(signature);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+
+  // One value normally, two during a rotation: "v1=<new>,v1=<old>".
+  return signature.split(",").some((candidate) => {
+    const b = Buffer.from(candidate.trim());
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  });
 }
 ```
 
@@ -250,6 +276,11 @@ function verifyProxyJamWebhook(secret, body, headers) {
 
 Answer a delivery that fails verification with `401` or `403`; it is not
 retried.
+
+A delivery that was already in flight when you rotated may carry only the
+**old** signature, because it was signed before the rotation. Keep accepting
+the old secret for a short while after you rotate. With `grace_seconds` set to
+`0` such a delivery can be rejected.
 
 ## Responding and retries
 
@@ -260,9 +291,14 @@ Redirects are not followed.
 | Your response | What ProxyJam does |
 | --- | --- |
 | `2xx` | Delivered. No further attempts. |
-| `408`, `409`, `425`, `429`, any `5xx` | Retries. |
+| `408`, `425`, `429`, any `5xx` | Retries. |
 | Timeout, connection error, DNS failure | Retries. |
-| `3xx` or any other `4xx` | Gives up — the delivery is marked failed. |
+| `3xx`, `409` or any other `4xx` | Gives up — the delivery is marked failed. |
+
+`409` is not retried: sending the same event again would conflict again.
+Each attempt is a single `POST`: if it may already have reached you,
+ProxyJam does not repeat it against another address of the same host within the
+same attempt.
 
 A delivery gets **five attempts** in total. The wait before each retry starts
 at 30 seconds and doubles — about 30 s, 1 min, 2 min and 4 min — and would never
@@ -270,18 +306,46 @@ exceed two hours. Retries are picked up by a job that runs once a minute, so
 expect the actual gaps to be up to a minute longer. After the fifth failed
 attempt the delivery is abandoned.
 
-Deleting the endpoint cancels its pending retries, and a retry that comes due
-while the endpoint is disabled is cancelled instead of sent. Changes that
-happen while no endpoint is enabled are not delivered later.
+Deleting or disabling the endpoint cancels its queued deliveries and pending
+retries immediately. Changes that happen while no endpoint is enabled are not
+delivered later.
 
 Because a retry follows any attempt whose answer did not arrive in time, the
 same event can reach you more than once. Deduplicate on the body's `id`. And
 since events can also arrive out of order, compare `occurred_at` — or fetch
 the order — before acting on a status.
 
+## Automatic switch-off
+
+An endpoint that keeps failing switches itself off, but only when **both** of
+these hold:
+
+- **10 or more deliveries in a row** ended `failed` or `blocked`, and
+- that streak of failures has lasted **at least one hour**, counted from the
+  first failure of the streak.
+
+Ten failures in the first few minutes of an outage therefore do not switch the
+endpoint off; it goes off once the streak is both long enough and old enough.
+Then ProxyJam sets `enabled` to `false`, `disabled_reason` to `"auto_failures"`
+and `disabled_at` to the time it happened, and cancels the endpoint's queued
+deliveries. The account owner gets a notice in the dashboard and, when the
+account has a usable email address, an email too; accounts without one get the
+notice only. Both show the endpoint address without its query string.
+
+- The count is per delivery, not per attempt: a delivery that retried five
+  times and was abandoned adds one.
+- A delivery that is delivered resets both the count and the one-hour clock.
+- [Test deliveries](#send-a-test-delivery) never count, in either direction.
+- Changing the endpoint's `url` resets the count and the clock too.
+- Turning the endpoint back on — `PATCH` with `"enabled": true`, or from the
+  dashboard — clears `disabled_reason` and `disabled_at` and resets the count
+  and the clock. It does not replay what was missed.
+
+An endpoint you switched off yourself keeps `disabled_reason` set to `null`.
+
 ## Managing endpoints
 
-All five endpoints live under `https://api.proxyjam.com/public/v1`.
+All six endpoints live under `https://api.proxyjam.com/public/v1`.
 
 | Method | Path | What it does |
 | --- | --- | --- |
@@ -290,6 +354,7 @@ All five endpoints live under `https://api.proxyjam.com/public/v1`.
 | `PATCH` | `/webhooks/{endpoint_id}` | Change the URL, or enable / disable it. |
 | `DELETE` | `/webhooks/{endpoint_id}` | Delete it. Answers `204` with no body. |
 | `POST` | `/webhooks/{endpoint_id}/test` | Send one test delivery and return the result. |
+| `POST` | `/webhooks/{endpoint_id}/rotate-secret` | Issue a new signing secret. Returns it once. |
 
 An id that does not exist, or belongs to another account, answers
 `404 NOT_FOUND`. Errors use the usual [error envelope](/overview/errors).
@@ -304,6 +369,9 @@ An id that does not exist, or belongs to another account, answers
   "url": "https://example.com/hooks/proxyjam",
   "enabled": true,
   "secret_preview": "whsec_3f9a1c...a7b2e4",
+  "disabled_reason": null,
+  "disabled_at": null,
+  "previous_secret_expires_at": null,
   "last_test_at": null,
   "last_delivery_at": "2026-10-16T09:30:03.102000+00:00",
   "created_at": "2026-10-01T12:00:00+00:00",
@@ -324,11 +392,27 @@ An id that does not exist, or belongs to another account, answers
 </ResponseField>
 
 <ResponseField name="enabled" type="boolean">
-  Whether the endpoint receives deliveries.
+  Whether the endpoint receives deliveries. It turns `false` by itself after
+  [10 or more failed deliveries in a row over at least an hour](#automatic-switch-off).
 </ResponseField>
 
 <ResponseField name="secret_preview" type="string">
   The first 12 and last 6 characters of the signing secret.
+</ResponseField>
+
+<ResponseField name="disabled_reason" type="string | null">
+  `"auto_failures"` when the endpoint
+  [switched itself off](#automatic-switch-off) after a streak of 10 or more failed
+  deliveries that lasted at least an hour. `null` while it is on, and when you switched it off yourself.
+</ResponseField>
+
+<ResponseField name="disabled_at" type="string | null">
+  When the endpoint switched itself off, ISO 8601; `null` otherwise.
+</ResponseField>
+
+<ResponseField name="previous_secret_expires_at" type="string | null">
+  After a [rotation](#rotating-the-secret), when the old signing secret stops
+  signing deliveries. `null` when no old secret is in its grace window.
 </ResponseField>
 
 <ResponseField name="last_test_at" type="string | null">
@@ -386,13 +470,16 @@ curl -X PATCH https://api.proxyjam.com/public/v1/webhooks/2f6d9b1e-8c4a-4e7f-a0b
 
 <ParamField body="url" type="string">
   A new URL, validated like the one at creation. The signing secret stays the
-  same.
+  same; to change it, [rotate it](#rotating-the-secret). A new URL also resets
+  the [automatic switch-off](#automatic-switch-off) count and clock.
 </ParamField>
 
 <ParamField body="enabled" type="boolean">
-  `false` stops deliveries: new changes are not sent, and retries that come due
-  are cancelled. `true` turns it back on, provided no other endpoint is
-  enabled; it does not replay what was missed.
+  `false` stops deliveries: new changes are not sent, and queued deliveries and
+  retries are cancelled at once. `true` turns it back on, provided no other
+  endpoint is enabled; it resets the failure count and clock behind the
+  [automatic switch-off](#automatic-switch-off) and does not replay what was
+  missed.
 </ParamField>
 
 Send only the fields you change. The response is the updated endpoint object.
@@ -463,7 +550,52 @@ omit `X-ProxyJam-Signature`.
 
 ## Rotating the secret
 
-A secret belongs to its endpoint and cannot be changed. To rotate, create a
-new endpoint with `"enabled": false`, give its secret to your receiver, then
-disable the old endpoint and enable the new one. Delete the old one once
-nothing depends on it.
+Rotate the secret on a schedule, or at once if it may have leaked. In the
+dashboard, open the endpoint and choose **Rotate secret**; through the API:
+
+```bash
+curl -X POST https://api.proxyjam.com/public/v1/webhooks/2f6d9b1e-8c4a-4e7f-a0b3-6d5c4e3f2a19/rotate-secret \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"grace_seconds": 86400}'
+```
+
+<ParamField body="grace_seconds" type="integer" default="86400">
+  How long the old secret keeps signing next to the new one, from `0` to
+  `86400` (24 hours). The body is optional: leave it out and the grace is 24
+  hours. Pass `0` to stop the old secret at once, which is what you want when it
+  has leaked.
+</ParamField>
+
+The response is `200` with the [endpoint object](#the-endpoint-object) plus the
+new `signing_secret`, shown in this response only, like on creation. The
+dashboard shows a secret once in the same way, when you create the endpoint or
+rotate it.
+
+Until `previous_secret_expires_at`, every delivery carries two signatures — the
+new secret's first, the old one's second — as described in
+[Verifying the signature](#verifying-the-signature). A receiver that checks
+every `v1=` value needs no change at the moment you rotate:
+
+<Steps>
+  <Step title="Rotate">
+    Call the endpoint above and store the new `signing_secret`.
+  </Step>
+  <Step title="Switch your receiver">
+    Deploy the new secret. Deliveries signed with either secret verify during
+    the grace window.
+  </Step>
+  <Step title="Let the old secret expire">
+    When `previous_secret_expires_at` passes, deliveries carry one signature
+    again.
+  </Step>
+</Steps>
+
+A second rotation inside the window drops the oldest secret: the first old
+secret stops signing at once, and the secret you just rotated away from takes
+its place, so at most two secrets sign at any time. Rotation is limited to
+about 5 per minute; more returns `429`.
+
+A delivery already in flight when you rotate may carry only the old signature;
+see [Verifying the signature](#verifying-the-signature) for how long to keep
+accepting the old secret.
