@@ -17,6 +17,7 @@ Notable changes to the ProxyJam API documentation. The format is based on
 
 ### Changed
 
+- On the OAuth consent screen, an app ProxyJam has not verified (anything but claude.ai and ChatGPT, including apps on your own computer) gets orders with proxy logins and passwords as a separate unticked *Show my orders and proxies* box, ticked and locked by *Allow spending from my wallet*, and is named by where access goes.
 - Order `status` documents the real values — `new`, `waiting_payment`, `paid`, `provisioning_failed`,
   `provisioned`, `cancelled`, `refunded`, `expired` — in place of the old `pending`, `pending_payment`,
   `active` and `failed`. An unpaid order becomes `expired` when its payment window closes; a payment
