@@ -127,9 +127,11 @@ must match a registered one exactly, apart from the loopback port.
 
 2. They sign in to ProxyJam if they are not already, and approve on the consent
    screen at `app.proxyjam.com`. The screen always shows where access will be
-   sent: an app ProxyJam has not verified is headlined by the host access goes
-   to (or "An app on this computer") and named underneath as "Calls itself …". An app on the person's own computer (a loopback redirect) gets a
-   warning and is never marked as verified.
+   sent. An app ProxyJam has not verified is headlined by the host access goes
+   to and named underneath as "Calls itself …". An app on the person's own
+   computer — a loopback redirect, or a native app's private-use scheme such
+   as `com.example.app:/callback` — is headlined "An app on this computer"
+   instead, gets a warning, and is never marked as verified.
 3. The browser comes back to your redirect URI with `code`, `state` and
    `iss=https://proxyjam.com`, or with `error=access_denied` if they declined.
    An unknown client or a redirect URI that is not registered always ends on
@@ -177,9 +179,11 @@ must match a registered one exactly, apart from the loopback port.
 
 - **The other read scopes are granted together.** For an app ProxyJam has
   not verified (every app except claude.ai and ChatGPT signing in on their
-  own domain, and any app on the person's own computer), orders, with proxy
-  logins and passwords, are a separate box, because spending routes return
-  credentials. Ticking spending ticks and locks it.
+  own domain, and any app on the person's own computer), orders are a
+  separate box, unticked, because they include proxy logins and passwords.
+  Ticking spending ticks and locks that box, because the spending routes
+  return the same credentials. This applies from the next sign-in; existing
+  connections keep the scopes they were granted.
 - **The spending box appears when the client asks for `orders:write`.**
   The MCP server's challenge does, so every sign-in through it offers the
   box; it starts unticked.
