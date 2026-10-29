@@ -127,8 +127,11 @@ must match a registered one exactly, apart from the loopback port.
 
 2. They sign in to ProxyJam if they are not already, and approve on the consent
    screen at `app.proxyjam.com`. The screen always shows where access will be
-   sent. An app on the person's own computer (a loopback redirect) gets a
-   warning and is never marked as verified.
+   sent. An app ProxyJam has not verified is headlined by the host access goes
+   to and named underneath as "Calls itself …". An app on the person's own
+   computer — a loopback redirect, or a native app's private-use scheme such
+   as `com.example.app:/callback` — is headlined "An app on this computer"
+   instead, gets a warning, and is never marked as verified.
 3. The browser comes back to your redirect URI with `code`, `state` and
    `iss=https://proxyjam.com`, or with `error=access_denied` if they declined.
    An unknown client or a redirect URI that is not registered always ends on
@@ -170,12 +173,17 @@ must match a registered one exactly, apart from the loopback port.
 | --- | --- | --- | --- |
 | `catalog:read` | always, with the other reads | the catalogue | `list_offers` |
 | `account:read` | always, with the other reads | profile, referrals, promo-code preview, IP-check history and quota | — |
-| `orders:read` | always, with the other reads | orders, traffic, and proxy details **including logins and passwords** | `list_my_orders`, `get_order`, `get_my_traffic_summary`, `get_order_traffic` |
+| `orders:read` | always, with the other reads, for a verified app; otherwise a separate *Show my orders and proxies* box, unticked, which ticking *Allow spending from my wallet* also ticks | orders, traffic, and proxy details **including logins and passwords** | `list_my_orders`, `get_order`, `get_my_traffic_summary`, `get_order_traffic` |
 | `wallet:read` | always, with the other reads | wallets, balances and transactions | `list_my_wallets`, `get_wallet_balance`, `list_wallet_transactions`, `get_transaction` |
 | `orders:write` | **off**: a separate *Allow spending from my wallet* box | spending, and every change to a paid service | `create_proxy_order`, `extend_proxy_period`, `buy_proxy_bandwidth`, `set_auto_renew`, `set_proxy_whitelist`, `change_proxy_protocol`, `sync_proxy_state` |
 
-- **Every read scope the client asks for is granted together.** The person
-  cannot withhold one and keep another.
+- **The other read scopes are granted together.** For an app ProxyJam has
+  not verified (every app except claude.ai and ChatGPT signing in on their
+  own domain, and any app on the person's own computer), orders are a
+  separate box, unticked, because they include proxy logins and passwords.
+  Ticking spending ticks and locks that box, because the spending routes
+  return the same credentials. This applies from the next sign-in; existing
+  connections keep the scopes they were granted.
 - **The spending box appears when the client asks for `orders:write`.**
   The MCP server's challenge does, so every sign-in through it offers the
   box; it starts unticked.
