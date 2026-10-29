@@ -1,12 +1,12 @@
 ---
-title: "Update IP whitelist"
-description: "Replace the list of whitelisted IPs for a proxy."
+title: "Update IP allowlist"
+description: "Replace the list of allowed source IPs for a proxy."
 api: "PUT /orders/{order_id}/whitelist"
 ---
 
-Replaces the IP whitelist at the provider level. Proxies using IP-whitelist authentication accept connections only from addresses on this list.
+Replaces the IP allowlist at the provider level. Proxies using IP-allowlist authentication accept connections only from addresses on this list.
 
-Sending an empty array disables IP-whitelist authentication and falls back to username/password auth.
+Sending an empty array disables IP-allowlist authentication and falls back to username/password auth.
 
 ## Path parameters
 
@@ -17,7 +17,7 @@ Sending an empty array disables IP-whitelist authentication and falls back to us
 ## Request body
 
 <ParamField body="whitelisted_ips" type="array" required>
-  List of IPv4 addresses to allow. Send an empty array to clear the whitelist.
+  List of IPv4 addresses to allow. Send an empty array to clear the allowlist.
 </ParamField>
 
 ## Response

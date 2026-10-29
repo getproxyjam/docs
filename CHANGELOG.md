@@ -25,6 +25,11 @@ Notable changes to the ProxyJam API documentation. The format is based on
 - The MCP server page moved to `/mcp-server` (its own tab); `/api/mcp` redirects there.
 - API key links point at `app.proxyjam.com/apikey`: the dashboard has been the root of its own
   subdomain since frontend v0.1.6, and `/dashboard/apikey` survives there only as a redirect.
+- Prose says IP allowlist instead of whitelist ("Update IP allowlist", IP-allowlist authentication).
+  The endpoint `PUT /orders/{order_id}/whitelist`, the `whitelisted_ips` field, the MCP tool
+  `set_proxy_whitelist` and the page address `/api/orders/proxy-whitelist` are unchanged.
+- Change proxy signature describes the signature as the device and operating system the proxy
+  presents.
 
 ## 2026-06-13
 
