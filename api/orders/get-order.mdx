@@ -33,8 +33,12 @@ Same shape as [Create order response](/api/orders/create-order#response). `statu
   from the upstream provider on each request. The response carries
   `"type": "mobile"` and a **superset** of fields: the live state
   (`signature`, `tags`, `current_ip`, `status`) plus durable order
-  metadata (`country`, `city`, `isp`, `period_days`, `total_usd`,
-  `created_at`, …).
+  metadata (`country`, `city`, `isp`, `period_days`, `period_seconds`,
+  `total_usd`, `created_at`, …).
+
+  `period_days` is never below `1`. For a tariff shorter than a day read
+  `period_seconds`: a 1-hour order has `period_days: 1` and
+  `period_seconds: 3600`.
 
   An order that was never provisioned — `new`, `waiting_payment`,
   `expired` or `cancelled` — has no live proxy to read. It returns the
@@ -42,9 +46,9 @@ Same shape as [Create order response](/api/orders/create-order#response). `statu
   snapshot, with `payment_url` included.
 
   Two fields look similar but mean different things:
-  `status` is the **live proxy state** (e.g. `"active"`) reported by the
-  provider on this request; `order_status` is the **order lifecycle**
-  value (e.g. `"provisioned"`).
+  `status` is the **state of the proxy** — `"active"`, `"expired"` or
+  `"cancelled"`; `order_status` is the **order lifecycle** value (e.g.
+  `"provisioned"`).
 
   The Python SDK dispatches automatically: `proxyjam.orders.get()` returns
   either an `Order` or a `MobileProxy` based on the response shape.
@@ -125,6 +129,7 @@ with ProxyJamClient(api_key="pj_live_...") as proxyjam:
   "city": null,
   "isp": "T-Mobile",
   "period_days": 1,
+  "period_seconds": 86400,
   "bandwidth_gb": null,
   "quantity": 1,
   "total_usd": 1.5,
