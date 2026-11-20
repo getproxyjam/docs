@@ -52,6 +52,7 @@ comes back in the same shape. There is no second format to special-case.
 | `NOT_FOUND` | `404` | No such resource, or it belongs to someone else. |
 | `CONFLICT` | `409` | A business rule refused the request: a duplicate, or an `Idempotency-Key` reused for a different payload. |
 | `INSUFFICIENT_FUNDS` | `409` | Not enough balance. `details.required` is the amount needed. |
+| `MOBILE_PORTS_EXHAUSTED` | `409` | Mobile rotating proxies are out of stock for now. Refused before the order is created, so nothing is charged; try again later. |
 | `RATE_LIMIT_EXCEEDED` | `429` | Too many requests. See below. |
 | `SERVICE_UNAVAILABLE` | `503` | A dependency we call could not be reached. |
 | `EXTERNAL_SERVICE_ERROR` | `503` | An upstream service answered, but with a failure. |

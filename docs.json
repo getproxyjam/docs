@@ -103,6 +103,9 @@
             "group": "Mobile rotating proxies",
             "pages": [
               "api/mobile/reset-proxy-ip",
+              "api/mobile/auto-reset-proxy-ip",
+              "api/mobile/create-reset-link",
+              "api/mobile/reset-ip-by-link",
               "api/mobile/update-proxy-credentials",
               "api/mobile/change-proxy-signature",
               "api/mobile/update-proxy-tags",

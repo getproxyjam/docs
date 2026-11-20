@@ -1,0 +1,43 @@
+---
+title: "Change IP by link"
+description: "Change a mobile rotating proxy's IP by opening its link, with no API key."
+api: "GET /orders/reset/{token}"
+authMethod: "none"
+---
+
+Changes the proxy's IP, like [Reset proxy IP](/api/mobile/reset-proxy-ip), but takes no API key: the token in the address is the credential. You do not build this address yourself; it is the `reset_url` that [Create IP change link](/api/mobile/create-reset-link) returns.
+
+## Path parameters
+
+<ParamField path="token" type="string" required>
+  The secret part of `reset_url`.
+</ParamField>
+
+## Response
+
+<ResponseField name="current_ip" type="string | null">
+  The new exit IP, or `null` while the modem is still reconnecting.
+</ResponseField>
+
+## Errors
+
+| HTTP | When |
+| --- | --- |
+| `404` | The link was replaced, or the proxy was released or its plan has ended. |
+| `429` | The IP cannot change again yet, or the link was opened too often. `Retry-After` says how many seconds to wait. |
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.proxyjam.com/public/v1/orders/reset/Xq3v..."
+```
+
+```json Response
+{
+  "current_ip": "203.0.113.42"
+}
+```
+
+</CodeGroup>
