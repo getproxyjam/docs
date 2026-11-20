@@ -54,8 +54,9 @@ Mobile options additionally include traffic-based billing:
 | --- | --- | --- |
 | `price` | `float` | Price in the requested catalog currency |
 | `traffic_mb` | `int \| null` | Included traffic in MB |
-| `period_days` | `int` | Rental period |
-| `period_name` | `string` | Human-readable period label |
+| `period_days` | `int` | Rental period in whole days; `0` for a tariff shorter than a day |
+| `period_seconds` | `int \| null` | Rental period in seconds. Read it for tariffs shorter than a day (`3600` is one hour) |
+| `period_name` | `string` | Human-readable period label (e.g., `"1h"`, `"1 day"`) |
 | `traffic_name` | `string` | Traffic label (e.g., `"5 GB"`) |
 | `tarification_index` | `int` | Selector to pass when creating an order (required for mobile rotating) |
 
