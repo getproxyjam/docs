@@ -121,8 +121,12 @@ Returns the full proxy catalog grouped by `kind`. Use query parameters to filter
           Pricing options — the units you actually purchase. Each carries a
           `price` in the response `currency` (`null` when not priced in it)
           and a `tarification_index` to pass when creating an order; any
-          option can be paid at the shown price in either currency. See
-          [Proxy types](/overview/proxy-types) for the other fields.
+          option can be paid at the shown price in either currency. Mobile
+          rotating options also carry `purchasable`: `false` for a tariff
+          that is no longer sold (every tariff shorter than a day). It keeps
+          its place in the list so every other option keeps its
+          `tarification_index`; ordering or extending onto it answers
+          `422`. See [Proxy types](/overview/proxy-types) for the other fields.
         </ResponseField>
       </Expandable>
     </ResponseField>
