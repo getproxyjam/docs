@@ -4,7 +4,9 @@ description: "Get the authenticated user's in-app notifications."
 api: "GET /notifications"
 ---
 
-Returns a paginated list of notifications for the current user, sorted by creation date descending.
+Returns a paginated list of the current user's in-app notifications, newest first.
+
+Page through the list with `limit` and `offset` until `has_more` is `false`.
 
 ## Query parameters
 
@@ -14,6 +16,10 @@ Returns a paginated list of notifications for the current user, sorted by creati
 
 <ParamField query="offset" type="integer" default="0">
   Number of notifications to skip.
+</ParamField>
+
+<ParamField query="unread_only" type="boolean" default="false">
+  Return only notifications that have not been read yet.
 </ParamField>
 
 ## Response
@@ -31,15 +37,38 @@ Returns a paginated list of notifications for the current user, sorted by creati
     <ResponseField name="sent_at" type="string">When the notification was sent. `null` if not yet sent.</ResponseField>
     <ResponseField name="delivered_at" type="string">When delivery was confirmed. `null` if not confirmed.</ResponseField>
     <ResponseField name="read_at" type="string">When the user read the notification. `null` if unread.</ResponseField>
+    <ResponseField name="metadata" type="object">
+      What the notification is about. Every field is `null` (or empty) when it does not apply.
+      <Expandable title="metadata">
+        <ResponseField name="event_type" type="string">What raised it, e.g. `order_update`, `order_provisioned`, `wallet_update`, `ip_check`.</ResponseField>
+        <ResponseField name="order_id" type="string">The order it is about.</ResponseField>
+        <ResponseField name="kind" type="string">Which order event it is, e.g. `order_paid`, `order_expired`.</ResponseField>
+        <ResponseField name="check_id" type="string">The IP check it is about. Fetch the report with [Get a check](/api/ip-check/get-check).</ResponseField>
+        <ResponseField name="message_key" type="string">
+          Which message it is, e.g. `order_paid`, `balance_deposited`, `ip_check_completed`. Use it with
+          `message_params` to show the notification in your own language and wording; `subject` and
+          `body` are the same message in English. `null` on notifications created before keys existed.
+        </ResponseField>
+        <ResponseField name="message_params" type="object">
+          The values the message is filled in with, e.g. `{"order_id": "…"}` or
+          `{"ip": "203.0.113.7", "verdict": "clean", "check_id": "…"}`. Strings and integers only.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
   </Expandable>
 </ResponseField>
 
 <ResponseField name="total" type="integer">
-  Total number of notifications.
+  How many notifications the query matches across all pages: all of them, or only the unread ones
+  with `unread_only=true`.
 </ResponseField>
 
 <ResponseField name="unread_count" type="integer">
   Number of unread notifications.
+</ResponseField>
+
+<ResponseField name="has_more" type="boolean">
+  Whether another page follows this one.
 </ResponseField>
 
 ## Example
@@ -47,7 +76,7 @@ Returns a paginated list of notifications for the current user, sorted by creati
 <CodeGroup>
 
 ```bash Request
-curl https://api.proxyjam.com/public/v1/notifications \
+curl "https://api.proxyjam.com/public/v1/notifications?limit=20&offset=0" \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -57,18 +86,27 @@ curl https://api.proxyjam.com/public/v1/notifications \
     {
       "id": "notif-uuid-1",
       "channel": "in_app",
-      "subject": "Your order is active",
-      "body": "Proxy credentials for order #order-uuid are ready.",
-      "status": "delivered",
+      "subject": "Proxies Ready",
+      "body": "Your 1 proxy(ies) for order order-uuid are ready!",
+      "status": "sent",
       "priority": "normal",
       "created_at": "2024-01-15T10:00:10Z",
       "sent_at": "2024-01-15T10:00:10Z",
-      "delivered_at": "2024-01-15T10:00:11Z",
-      "read_at": null
+      "delivered_at": null,
+      "read_at": null,
+      "metadata": {
+        "event_type": "order_provisioned",
+        "order_id": "order-uuid",
+        "kind": "order_provisioned",
+        "check_id": null,
+        "message_key": "order_provisioned",
+        "message_params": { "order_id": "order-uuid", "count": 1 }
+      }
     }
   ],
   "total": 1,
-  "unread_count": 1
+  "unread_count": 1,
+  "has_more": false
 }
 ```
 
