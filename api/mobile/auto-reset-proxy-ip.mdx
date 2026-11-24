@@ -1,0 +1,53 @@
+---
+title: "Change proxy IP automatically"
+description: "Rotate the public IP of a mobile rotating proxy on a timer."
+api: "POST /orders/{order_id}/auto-reset"
+---
+
+Sets how often the proxy changes its IP on its own, or turns automatic changes off. The proxy keeps its host, port and credentials; the connection drops for a moment at each change. The current interval is `auto_reset_interval_seconds` on [Get order](/api/orders/get-order#response-mobile).
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order backing the mobile rotating proxy.
+</ParamField>
+
+## Request body
+
+<ParamField body="interval_seconds" type="integer" required>
+  Seconds between automatic IP changes, from `60` to `86400` (one day). `0` turns automatic changes off. Anything else answers `422`.
+</ParamField>
+
+## Response
+
+Live snapshot of the mobile rotating proxy with the new interval in `auto_reset_interval_seconds`. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/auto-reset" \
+  -H "X-API-Key: pj_AbCdEf..." \
+  -H "Content-Type: application/json" \
+  -d '{"interval_seconds": 300}'
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "active",
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.proxyjam.com",
+  "port": 24534,
+  "current_ip": "203.0.113.99",
+  "signature": "Windows 11",
+  "auto_reset_interval_seconds": 300,
+  "reset_url": null,
+  "order_status": "provisioned",
+  "proxy_type": "mobile"
+}
+```
+
+</CodeGroup>

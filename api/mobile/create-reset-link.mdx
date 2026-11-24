@@ -1,0 +1,50 @@
+---
+title: "Create IP change link"
+description: "Issue a link that changes a mobile rotating proxy's IP when opened, with no API key."
+api: "POST /orders/{order_id}/reset-link"
+---
+
+Issues a link that changes the proxy's IP when it is opened, for tools that can only call a URL: antidetect browsers, schedulers, scripts without your API key. The link itself is in `reset_url`; open it with [Change IP by link](/api/mobile/reset-ip-by-link).
+
+Calling this again replaces the link, and the previous one stops working at once. Releasing the proxy, or the end of its plan, voids it. Get order returns the current one in `reset_url`.
+
+<Warning>
+  The link is the only credential it needs. Anyone who has it can change the proxy's IP, so treat it like a password and replace it if it leaks.
+</Warning>
+
+## Path parameters
+
+<ParamField path="order_id" type="string" required>
+  UUID of the order backing the mobile rotating proxy.
+</ParamField>
+
+## Response
+
+The mobile rotating proxy, with the new link in `reset_url`. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile).
+
+## Example
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.proxyjam.com/public/v1/orders/997b4450-e7ae-4ad9-8a25-996e582049c9/reset-link" \
+  -H "X-API-Key: pj_AbCdEf..."
+```
+
+```json Response
+{
+  "type": "mobile",
+  "id": "997b4450-e7ae-4ad9-8a25-996e582049c9",
+  "status": "active",
+  "expires_at": "2026-12-31T23:59:59Z",
+  "host": "gw.proxyjam.com",
+  "port": 24534,
+  "current_ip": "203.0.113.99",
+  "auto_reset_interval_seconds": 0,
+  "reset_url": "https://api.proxyjam.com/public/v1/orders/reset/Xq3v…",
+  "order_status": "provisioned",
+  "proxy_type": "mobile"
+}
+```
+
+</CodeGroup>

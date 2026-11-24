@@ -25,6 +25,12 @@ sale today.
 Ordering `mobile` is gated behind a per-account flag and returns
 `FeatureDisabled` unless your account has it. `datacenter` offers appear in
 the catalog when the upstream stocks them and are not orderable.
+
+Mobile rotating proxies are sold from a limited pool of ports. While it is
+full, mobile offers read `is_available: false` and creating a mobile order
+returns `409` `MOBILE_PORTS_EXHAUSTED`, before anything is charged. A port
+goes back to the pool within minutes of its proxy's end, so a mobile
+rotating proxy cannot be extended once it has expired.
 </Note>
 
 ## Options per kind
