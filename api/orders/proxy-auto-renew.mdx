@@ -4,7 +4,11 @@ description: "Enable or disable automatic renewal for a proxy."
 api: "POST /orders/{order_id}/auto-renew"
 ---
 
-Toggles automatic renewal on the provider side. When enabled, the proxy subscription renews automatically at expiry.
+Turns automatic renewal on or off. When it is on, the proxy is extended from your wallet before it expires.
+
+<Note>
+  **Mobile rotating proxies** on a tariff of a day or longer are extended from your wallet shortly before the end of each cycle, on the tariff the proxy runs on, at the current price, in the order's currency. The time left on the ending cycle is not carried over: the new cycle starts when the renewal runs. If the balance is short, auto-renew is switched off, you are notified, and the proxy expires at the end of its cycle. A proxy on a tariff shorter than a day is not renewed.
+</Note>
 
 ## Path parameters
 

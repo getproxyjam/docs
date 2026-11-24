@@ -6,6 +6,8 @@ api: "POST /orders/{order_id}/tags"
 
 Replaces the proxy's tag list. Tags are free-form strings for organising and filtering proxies in your own tooling; they are not interpreted by the API.
 
+At most 10 tags, each 1 to 32 characters after leading and trailing spaces are trimmed, with no duplicates (compared after trimming; case counts, so `Prod` and `prod` are two tags). A list that breaks a limit is refused with `422` and nothing changes.
+
 ## Path parameters
 
 <ParamField path="order_id" type="string" required>
@@ -15,7 +17,7 @@ Replaces the proxy's tag list. Tags are free-form strings for organising and fil
 ## Request body
 
 <ParamField body="tags" type="array" required>
-  Replacement tag list. Send an empty array to clear all tags.
+  Replacement tag list: at most 10 tags of 1 to 32 characters, no duplicates. Send an empty array to clear all tags.
 </ParamField>
 
 ## Response
