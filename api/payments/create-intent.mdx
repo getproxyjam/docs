@@ -60,6 +60,10 @@ Initiates a payment through a provider. Returns a redirect URL that you send the
   Initial status: `pending`.
 </ResponseField>
 
+## Rate limit
+
+10 requests a minute per caller, with a burst of 5. Past that the call answers `429` with `Retry-After` in seconds; see [Rate limits](/overview/errors#rate-limits).
+
 ## Example
 
 <CodeGroup>

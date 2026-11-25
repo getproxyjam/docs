@@ -20,6 +20,10 @@ Triggers an immediate IP rotation at the upstream pool. The proxy keeps the same
 
 Live snapshot of the mobile rotating proxy after the rotation. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile) — the response includes the refreshed `current_ip` along with the rest of the proxy state.
 
+## Rate limit
+
+60 requests a minute per caller, with a burst of 30 — it waits on the upstream pool, whose capacity every customer shares. Past that the call answers `429` with `Retry-After` in seconds; see [Rate limits](/overview/errors#rate-limits).
+
 ## Example
 
 <CodeGroup>

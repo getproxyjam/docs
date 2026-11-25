@@ -7,6 +7,14 @@ Notable changes to the ProxyJam API documentation. The format is based on
 
 ### Added
 
+- Per-route rate limits on the routes that reach the payment provider or the upstream pool, and on
+  webhook create/update and password change, listed in one table under Rate limits
+  (`/overview/errors#rate-limits`) and on each endpoint page. An IP-counted limit counts an IPv6
+  caller by its `/64`.
+- At most 10 API keys per account; an 11th answers `409 CONFLICT`.
+- Password reset and verification emails are capped per account (one a minute, five a day); a capped
+  request gets the usual answer and sends nothing.
+- MCP: `429 slow_down` after 30 unrecognised API keys from one address in 10 minutes.
 - MCP clients can sign in with a ProxyJam account (OAuth 2.1) at `https://proxyjam.com/mcp`, now the
   canonical MCP URL; spending is a separate opt-in on the consent screen. A new page, OAuth and agent
   registration (`/overview/oauth`), covers the endpoints, scopes, token lifetimes, revocation, and

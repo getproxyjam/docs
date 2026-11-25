@@ -100,12 +100,29 @@ Two limits apply, and either can produce a `429`.
 **A global limit** of 100 requests per 60 seconds, with a burst allowance of 10.
 It is counted per caller, identified in this order: your `X-API-Key`, then your
 authenticated user, then your IP address. An API key and a bearer token for the
-same account are therefore two separate budgets.
+same account are therefore two separate budgets. An account holds at most 10 API
+keys (see [Generate API key](/api/auth/generate-key)).
 
-**Per-route limits** on the expensive endpoints, which are much tighter. For
-example `POST /ip-check` allows 5 requests per 60 seconds with a burst of 2 —
-each call holds a connection open for the length of three live third-party
-lookups.
+**Per-route limits** on the expensive endpoints, which are much tighter. Each is
+counted per caller and per route, on top of the global limit:
+
+| Route | Requests a minute | Burst | Why |
+| --- | --- | --- | --- |
+| `POST /ip-check` | 5 | 2 | Each call waits on three live third-party lookups. |
+| `POST /webhooks`, `PATCH /webhooks/{endpoint_id}` | 5 | 2 | The URL's host is resolved before the answer. |
+| `POST /users/change-password` | 5 | 2 | Password hashing is deliberately slow. |
+| `POST /payments/payment-intents` | 10 | 5 | Each call opens an invoice with the payment provider. |
+| `POST /orders` | 20 | 10 | Each call can open an invoice with the payment provider. |
+| `GET /orders/{order_id}` | 120 | 60 | A mobile rotating order is read live from the upstream pool. |
+| `POST /orders/{order_id}/auto-renew`, `/protocol`, `/sync`, `PUT /orders/{order_id}/whitelist` | 10 | 5 | Each change goes to the upstream pool. |
+| `POST /orders/{order_id}/reset` | 60 | 30 | IP changes are often scripted across many ports. |
+| `POST /orders/{order_id}/auto-reset`, `/credentials`, `/signature`, `/tags`, `/release` | 10 | 5 | Each change goes to the upstream pool. |
+
+The upstream pool's capacity is shared by every customer, which is why the
+routes that reach it are limited per caller.
+
+A limit counted by IP address counts an IPv6 caller by its `/64`, so rotating
+addresses inside one allocation does not buy a fresh budget.
 
 ### Reading a 429
 
