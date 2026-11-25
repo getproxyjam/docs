@@ -29,3 +29,7 @@ POST /users/resend-verification
 with `{ "email": "user@example.com" }`.
 
 The response is always successful regardless of whether the account exists, to prevent user enumeration.
+
+An account gets at most one verification email a minute and five a day, the one
+sent at sign-up included. A request past that gets the same answer and sends
+nothing.

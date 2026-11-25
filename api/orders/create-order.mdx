@@ -121,6 +121,10 @@ An order moves through these values in `status`. An unpaid order ends in `expire
   A payment that arrives after an order has become `expired` may be credited to your account balance, depending on the payment method; the order itself stays `expired`. See [Payment methods](/overview/payment-methods#unpaid-orders-and-the-payment-window) for what happens to a payment that arrives late. To buy, place a new order.
 </Note>
 
+## Rate limit
+
+20 requests a minute per caller, with a burst of 10. Past that the call answers `429` with `Retry-After` in seconds; see [Rate limits](/overview/errors#rate-limits).
+
 ## Example — wallet payment
 
 <CodeGroup>

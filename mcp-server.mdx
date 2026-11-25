@@ -552,6 +552,12 @@ it](/overview/oauth#agent-registration).
 **`HTTP 401 Invalid API key`** — the key is wrong, revoked, or
 expired. Generate a new one via the dashboard.
 
+**`HTTP 429` with `slow_down`** — your address sent 30 API keys the server did
+not recognise within 10 minutes, so new keys from it are not checked until the
+window frees one; `Retry-After` gives the wait in seconds. Keys that work are
+never counted, and a key already in use keeps working. Fix the key in your
+client's configuration, then reconnect.
+
 **Tools list is empty** — the MCP client cached an old session.
 Restart the client or reconnect the server.
 

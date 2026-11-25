@@ -24,6 +24,10 @@ At most 10 tags, each 1 to 32 characters after leading and trailing spaces are t
 
 Live snapshot of the mobile rotating proxy with the updated tag list. Same shape as the mobile branch of [Get order](/api/orders/get-order#response-mobile).
 
+## Rate limit
+
+10 requests a minute per caller, with a burst of 5 — it waits on the upstream pool, whose capacity every customer shares. Past that the call answers `429` with `Retry-After` in seconds; see [Rate limits](/overview/errors#rate-limits).
+
 ## Example
 
 <CodeGroup>

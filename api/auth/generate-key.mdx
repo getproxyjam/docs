@@ -10,6 +10,10 @@ Generate a new API key for the authenticated user. The raw key is returned **onl
   This endpoint requires Bearer token authentication. You cannot create an API key using another API key.
 </Note>
 
+An account holds at most **10 API keys**, expired ones included until you
+[revoke](/api/auth/revoke-key) them. Creating an 11th answers `409` with
+`CONFLICT`; revoke one first.
+
 ## Request body
 
 <ParamField body="name" type="string" required>
